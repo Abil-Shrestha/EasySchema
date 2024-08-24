@@ -67,7 +67,7 @@ const DynamicSchemaField = ({
     }
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
@@ -84,7 +84,7 @@ const DynamicSchemaField = ({
             value={field.name}
             onChange={(e) => updateField(field.id, "name", e.target.value)}
             placeholder="Field name"
-            className="w-full rounded-xl mb-2"
+            className="w-full rounded-xl mb-2 bg-white dark:bg-neutral-800 text-black "
           />
           <div ref={selectRef}>
             <Select
@@ -93,10 +93,10 @@ const DynamicSchemaField = ({
                 updateField(field.id, "type", value as SchemaFieldType)
               }
             >
-              <SelectTrigger className="w-full rounded-xl mb-2">
+              <SelectTrigger className="w-full rounded-xl mb-2 bg-white dark:bg-neutral-800 text-black dark:text-white">
                 <SelectValue placeholder="Select a type" />
               </SelectTrigger>
-              <SelectContent className="font-mono" ref={selectRef}>
+              <SelectContent className="font-mono bg-white dark:bg-neutral-800 text-black dark:text-white">
                 <SelectItem value="string">String</SelectItem>
                 <SelectItem value="number">Number</SelectItem>
                 <SelectItem value="boolean">Boolean</SelectItem>
@@ -119,7 +119,7 @@ const DynamicSchemaField = ({
           value={field.description || ""}
           onChange={(e) => updateField(field.id, "description", e.target.value)}
           placeholder="Description"
-          className="w-full rounded-xl"
+          className="w-full rounded-xl bg-white dark:bg-neutral-800 text-black dark:text-white"
         />
       ),
     },
@@ -133,7 +133,7 @@ const DynamicSchemaField = ({
               value={field.regex || ""}
               onChange={(e) => updateField(field.id, "regex", e.target.value)}
               placeholder="Regex ?"
-              className="w-full rounded-xl mb-2"
+              className="w-full rounded-xl mb-2 bg-white dark:bg-neutral-800 text-black dark:text-white"
             />
           )}
           {field.type === "number" && (
@@ -149,7 +149,7 @@ const DynamicSchemaField = ({
                   )
                 }
                 placeholder="Min"
-                className="w-1/2"
+                className="w-1/2 bg-white dark:bg-neutral-800 text-black dark:text-white"
               />
               <Input
                 type="number"
@@ -162,7 +162,7 @@ const DynamicSchemaField = ({
                   )
                 }
                 placeholder="Max"
-                className="w-1/2"
+                className="w-1/2 bg-white dark:bg-neutral-800 text-black dark:text-white"
               />
             </div>
           )}
@@ -177,7 +177,7 @@ const DynamicSchemaField = ({
                 )
               }
               placeholder="Enum values (comma-separated)"
-              className="w-full rounded-xl mb-2"
+              className="w-full rounded-xl mb-2 bg-white dark:bg-neutral-800 text-black dark:text-white"
             />
           )}
           <div className="flex items-center space-x-2 pt-1">
@@ -187,8 +187,14 @@ const DynamicSchemaField = ({
               onCheckedChange={(checked) =>
                 updateField(field.id, "isOptional", checked)
               }
+              className="bg-white dark:bg-neutral-800"
             />
-            <Label htmlFor={`optional-${field.id}`}>Optional</Label>
+            <Label
+              htmlFor={`optional-${field.id}`}
+              className="text-black dark:text-white"
+            >
+              Optional
+            </Label>
           </div>
         </>
       ),
@@ -208,7 +214,7 @@ const DynamicSchemaField = ({
           ref={containerRef}
           className={cn(
             "w-full rounded-xl px-4 pt-4 gap-4 mb-4",
-            "bg-white dark:bg-gray-800",
+            "bg-white dark:bg-neutral-800/80",
             "shadow-elevationLight dark:shadow-inner-shadow-dark-sm",
             `ml-${depth * 4}`
           )}
@@ -217,11 +223,11 @@ const DynamicSchemaField = ({
           exit={{opacity: 0, height: 0}}
         >
           <motion.div layout className="flex items-center mb-2">
-            <h3 className="text-lg font-semibold flex-grow">
+            <h3 className="text-lg font-semibold flex-grow text-black dark:text-white">
               {field.name || "New Field"}
             </h3>
             <GripVertical
-              className="mr-2 cursor-move stroke-neutral-400/80"
+              className="mr-2 cursor-move stroke-neutral-400/80 dark:stroke-neutral-400"
               onPointerDown={(e) => dragControls.start(e)}
             />
           </motion.div>
@@ -240,11 +246,12 @@ const DynamicSchemaField = ({
                     {ITEMS.map((item) => (
                       <Button
                         key={item.id}
-                        variant={active === item.id ? "default" : "outline"}
+                        variant={active === item.id ? "outline" : "default"}
                         size="sm"
                         onClick={() =>
                           setActive(active === item.id ? null : item.id)
                         }
+                        className="bg-white dark:bg-neutral-700 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-600"
                       >
                         {item.label}
                       </Button>
@@ -265,11 +272,7 @@ const DynamicSchemaField = ({
                           height: "auto",
                           filter: "blur(0px)",
                         }}
-                        exit={{
-                          opacity: 0,
-                          height: "auto",
-                          filter: "blur(6px)",
-                        }}
+                        exit={{opacity: 0, height: "auto", filter: "blur(6px)"}}
                         transition={{
                           opacity: {duration: 0.2},
                           height: {duration: 0.2},
@@ -283,18 +286,21 @@ const DynamicSchemaField = ({
 
                   <div className="flex justify-end">
                     {(field.type === "object" || field.type === "array") && (
-                      <Button onClick={() => addField(field.id)} size="sm">
+                      <Button
+                        onClick={() => addField(field.id)}
+                        size="sm"
+                        className="bg-white dark:bg-neutral-700 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-600 mr-2"
+                      >
                         <PlusIcon className="mr-2 h-4 w-4" /> Add Sub-field
                       </Button>
                     )}
                     <Button
                       onClick={() => removeField(field.id)}
-                      variant="outline"
+                      variant="default"
                       size="sm"
-                      className="hover:bg-destructive hover:text-white"
+                      className="bg-white dark:bg-neutral-700 text-black dark:text-white hover:bg-red-500/0 hover:text-white dark:hover:bg-red-500 dark:hover:text-white"
                     >
-                      <TrashIcon className="mr-2 h-4 w-4 hover:fill-white" />{" "}
-                      Remove Field
+                      <TrashIcon className="mr-2 h-4 w-4" /> Remove Field
                     </Button>
                   </div>
                 </div>
@@ -324,12 +330,12 @@ const DynamicSchemaField = ({
             size="sm"
             onClick={() => setIsOpen(!isOpen)}
             aria-label={isOpen ? "Collapse field" : "Expand field"}
-            className="w-full justify-center h-4 "
+            className="w-full justify-center hover:bg-gray-100 dark:hover:bg-neutral-700"
           >
             {isOpen ? (
-              <ChevronUpIcon className="h-4 w-4" />
+              <ChevronUpIcon className="h-4 w-4 text-black dark:text-white" />
             ) : (
-              <ChevronDownIcon className="h-4 w-4" />
+              <ChevronDownIcon className="h-4 w-4 text-black dark:text-white" />
             )}
           </Button>
         </motion.div>

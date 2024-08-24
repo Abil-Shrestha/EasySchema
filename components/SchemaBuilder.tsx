@@ -12,9 +12,9 @@ export default function Component() {
   const {schema, copied, addField, reorderFields} = useSchemaStore();
 
   return (
-    <div className="p-6 max-w-3xl w-full mx-auto">
-      <h1 className="text-3xl font-semibold mb-6 font-sans">
-        Prompt Schema Builder
+    <div className="p-6 max-w-3xl w-full mx-auto dark:bg-black">
+      <h1 className="text-3xl font-semibold mb-6 font-sans text-center">
+        Schema Builder
       </h1>
 
       <div className=" p-2 mb-4 ">
