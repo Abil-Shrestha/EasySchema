@@ -298,7 +298,7 @@ const DynamicSchemaField = ({
                       onClick={() => removeField(field.id)}
                       variant="default"
                       size="sm"
-                      className="bg-white dark:bg-neutral-700 text-black dark:text-white hover:bg-red-500/0 hover:text-white dark:hover:bg-red-500 dark:hover:text-white"
+                      className="bg-white dark:bg-neutral-700 text-black dark:text-white hover:bg-red-500/0 hover:text-black dark:hover:bg-red-500 dark:hover:text-white"
                     >
                       <TrashIcon className="mr-2 h-4 w-4" /> Remove Field
                     </Button>
