@@ -3,138 +3,150 @@ import {
   Document,
   Page,
   Text,
-  Font,
   View,
   StyleSheet,
   Link,
+  Font,
 } from "@react-pdf/renderer";
 
-// Create styles
+// Register the fonts
+Font.register({
+  family: "DMSans",
+  fonts: [
+    {src: "/fonts/DMSans-Medium.ttf", fontWeight: "normal"},
+    {src: "/fonts/DMSans-MediumItalic.ttf", fontStyle: "italic"},
+    {src: "/fonts/DMSans-SemiBold.ttf", fontWeight: "bold"},
+    {
+      src: "/fonts/DMSans-SemiBoldItalic.ttf",
+      fontWeight: "bold",
+      fontStyle: "italic",
+    },
+  ],
+});
+
 const styles = StyleSheet.create({
   page: {
     flexDirection: "column",
     backgroundColor: "#FFFFFF",
-    padding: 30,
-    fontFamily: "Helvetica",
+    padding: 16,
+    fontFamily: "DMSans",
   },
   section: {
-    marginBottom: 10,
+    marginBottom: 3,
   },
   heading: {
-    fontSize: 14,
-    marginBottom: 5,
-    fontWeight: 600, // Changed to semi-bold
+    fontSize: 12, // Reduced from 16 to 12 for section headings
+    marginBottom: 2,
+    fontWeight: "bold",
     textTransform: "uppercase",
   },
   personalInfo: {
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 1,
   },
   name: {
-    fontSize: 24,
-    fontWeight: 600,
-    marginBottom: 5,
+    fontSize: 24, // Kept at 24 as per your approval
+    fontWeight: "bold",
+    marginBottom: 2,
   },
   contactInfo: {
-    fontSize: 11,
+    fontSize: 9, // Reduced to 9 for contact information
     flexDirection: "row",
     justifyContent: "center",
   },
   contactItem: {
-    marginHorizontal: 5,
+    marginHorizontal: 2,
   },
   separator: {
-    marginHorizontal: 5,
+    marginHorizontal: 2,
   },
   workExperience: {
-    marginBottom: 10,
+    marginBottom: 4,
   },
   companyHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 3,
+    marginBottom: 1,
   },
   company: {
-    fontSize: 13,
-    fontWeight: 600,
+    fontSize: 11, // Reduced from 16 to 11 for company names
+    fontWeight: "bold",
   },
   location: {
-    fontSize: 11,
+    fontSize: 9, // Kept at 9 for location
     textAlign: "right",
   },
   jobHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 3,
+    marginBottom: 1,
   },
   jobTitle: {
-    fontSize: 11,
-    fontWeight: 400,
-    fontFamily: "Helvetica",
+    fontSize: 10, // Increased slightly to 10 for job titles
     fontStyle: "italic",
   },
   date: {
-    fontSize: 11,
+    fontSize: 9, // Kept at 9 for dates
     textAlign: "right",
   },
   bulletPoint: {
     flexDirection: "row",
-    marginBottom: 2,
+    marginBottom: 0.5,
   },
   bullet: {
-    width: 10,
-    fontSize: 11,
+    width: 6,
+    fontSize: 9, // Kept at 9 for bullet points
   },
   bulletContent: {
     flex: 1,
-    fontSize: 11,
+    fontSize: 9, // Kept at 9 for bullet content
   },
   education: {
-    marginBottom: 10,
+    marginBottom: 4,
   },
   universityHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 3,
+    marginBottom: 1,
   },
   university: {
-    fontSize: 13,
-    fontWeight: 600,
+    fontSize: 11, // Reduced from 16 to 11 for university names
+    fontWeight: "bold",
   },
   graduationDate: {
-    fontSize: 11,
+    fontSize: 9, // Kept at 9 for graduation dates
     textAlign: "right",
   },
   degree: {
-    fontSize: 11,
+    fontSize: 10, // Increased slightly to 10 for degree information
   },
   gpa: {
-    fontSize: 11,
-    marginTop: 2,
+    fontSize: 9, // Kept at 9 for GPA
+    marginTop: 0.5,
   },
   skills: {
-    fontSize: 11,
+    fontSize: 9, // Kept at 9 for skills
   },
   project: {
-    marginBottom: 8,
+    marginBottom: 3,
   },
   projectName: {
-    fontSize: 12,
-    fontWeight: 600,
-    marginBottom: 2,
+    fontSize: 11, // Reduced from 16 to 11 for project names
+    fontWeight: "bold",
+    marginBottom: 0.5,
   },
   projectDescription: {
-    fontSize: 11,
-    marginBottom: 2,
+    fontSize: 9, // Kept at 9 for project descriptions
+    marginBottom: 0.5,
   },
   projectTechnologies: {
-    fontSize: 10,
+    fontSize: 9, // Kept at 9 for project technologies
     fontStyle: "italic",
   },
   sectionSeparator: {
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0", // Light grey color
-    marginVertical: 10,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#E0E0E0",
+    marginVertical: 2,
   },
   link: {
     color: "#1a0dab",
@@ -164,10 +176,24 @@ const ResumePDF = ({
           </Link>
         </View>
       </View>
-      <View style={styles.sectionSeparator} />
+
+      <View style={styles.section}>
+        <Text style={styles.heading}>Education</Text>
+        <View style={styles.sectionSeparator} />
+        <View style={styles.education}>
+          <View style={styles.universityHeader}>
+            <Text style={styles.university}>{education.university}</Text>
+            <Text style={styles.graduationDate}>
+              {education.graduationDate}
+            </Text>
+          </View>
+          <Text style={styles.degree}>{education.degree}</Text>
+        </View>
+      </View>
 
       <View style={styles.section}>
         <Text style={styles.heading}>Work Experience</Text>
+        <View style={styles.sectionSeparator} />
         {workExperiences.map((exp, index) => (
           <View key={index} style={styles.workExperience}>
             <View style={styles.companyHeader}>
@@ -188,10 +214,9 @@ const ResumePDF = ({
         ))}
       </View>
 
-      <View style={styles.sectionSeparator} />
-
       <View style={styles.section}>
         <Text style={styles.heading}>Projects</Text>
+        <View style={styles.sectionSeparator} />
         {projects.map((project, index) => (
           <View key={index} style={styles.project}>
             <Text style={styles.projectName}>{project.name}</Text>
@@ -203,26 +228,9 @@ const ResumePDF = ({
         ))}
       </View>
 
-      <View style={styles.sectionSeparator} />
-
-      <View style={styles.section}>
-        <Text style={styles.heading}>Education</Text>
-        <View style={styles.education}>
-          <View style={styles.universityHeader}>
-            <Text style={styles.university}>{education.university}</Text>
-            <Text style={styles.graduationDate}>
-              {education.graduationDate}
-            </Text>
-          </View>
-          <Text style={styles.degree}>{education.degree}</Text>
-          <Text style={styles.gpa}>GPA: {education.gpa}</Text>
-        </View>
-      </View>
-
-      <View style={styles.sectionSeparator} />
-
       <View style={styles.section}>
         <Text style={styles.heading}>Skills</Text>
+        <View style={styles.sectionSeparator} />
         <Text style={styles.skills}>{skills}</Text>
       </View>
     </Page>

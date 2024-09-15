@@ -1,0 +1,41 @@
+.gridSystemContentWrapper {
+    width: 100%;
+    max-width: var(--max-width);
+    min-width: var(--min-width);
+    margin: 0 auto;
+  }
+  
+  .gridSystem {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border: var(--guide-width) solid var(--guide-color);
+  }
+  
+  .systemDashed .gridSystem {
+    border-style: dashed;
+  }
+  
+  .gridSystemLazyContent {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .systemDebug {
+    background-color: rgba(255, 0, 0, 0.1);
+  }
+  
+  .systemDebugOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 255, 0, 0.1);
+    pointer-events: none;
+  }
+  
+  .unstable_gridSystemWrapper {
+    container-type: inline-size;
+    container-name: grid-system;
+  }
