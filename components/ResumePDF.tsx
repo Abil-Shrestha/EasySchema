@@ -8,6 +8,20 @@ import {
   Link,
   Font,
 } from "@react-pdf/renderer";
+import {
+  PersonalInfo,
+  WorkExperience,
+  Education,
+  Project,
+} from "../store/resumeStore";
+
+interface ResumePDFProps {
+  personalInfo: PersonalInfo;
+  workExperiences: WorkExperience[];
+  education: Education;
+  skills: string[];
+  projects: Project[];
+}
 
 // Register the fonts
 Font.register({
@@ -155,7 +169,7 @@ const styles = StyleSheet.create({
 });
 
 // Create Document Component
-const ResumePDF = ({
+const ResumePDF: React.FC<ResumePDFProps> = ({
   personalInfo,
   workExperiences,
   education,

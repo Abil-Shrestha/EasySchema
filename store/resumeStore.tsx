@@ -1,14 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-interface PersonalInfo {
+export interface PersonalInfo {
   name: string;
   location: string;
   email: string;
   portfolio: string;
 }
 
-interface WorkExperience {
+export interface WorkExperience {
   id: number;
   company: string;
   location: string;
@@ -17,21 +17,21 @@ interface WorkExperience {
   description: string[];
 }
 
-interface Education {
+export interface Education {
   university: string;
   degree: string;
   gpa: string;
   graduationDate: string;
 }
 
-interface Project {
+export interface Project {
   id: number;
   name: string;
   description: string;
   technologies: string;
 }
 
-interface ResumeState {
+export interface ResumeState {
   personalInfo: PersonalInfo;
   workExperiences: WorkExperience[];
   education: Education;
