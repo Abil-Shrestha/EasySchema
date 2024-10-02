@@ -3,8 +3,15 @@ import {Button} from "@/components/ui/button";
 import {Download, Plus, Trash2} from "lucide-react";
 import EditableDiv from "@/components/Resume/EditableDiv";
 import BulletedList from "@/components/Resume/BulletedList";
+import { WorkExperience } from '@/store/updatedResumeStore';
 
-const WorkExperienceItem = ({
+interface WorkExperienceItemProps {
+  experience: WorkExperience;
+  updateExperience: (updatedExperience: WorkExperience) => void;
+  removeExperience: (id: number) => void;
+}
+
+const WorkExperienceItem :React.FC<WorkExperienceItemProps> = ({
   experience,
   updateExperience,
   removeExperience,

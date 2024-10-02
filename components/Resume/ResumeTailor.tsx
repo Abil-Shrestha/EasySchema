@@ -1,91 +1,104 @@
 "use client";
 
-import {Button} from "@/components/ui/button";
-import {Textarea} from "@/components/ui/textarea";
-import {useResumeStore} from "@/store/resumeStore";
-import {useState} from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { tailoredResumeSchema } from "@/lib/schema";
+import { useResumeStore } from "@/store/resumeStore";
+import { useUpdatedResumeStore } from "@/store/updatedResumeStore";
+import { experimental_useObject } from "ai/react";
+import { Loader2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 export default function ResumeTailor() {
   const [jobDescription, setJobDescription] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const currentResume = useResumeStore(state => ({
+  const jobDescriptionRef = useRef<HTMLTextAreaElement>(null);
+
+  const currentResume = useResumeStore((state) => ({
     personalInfo: state.personalInfo,
     workExperiences: state.workExperiences,
     education: state.education,
     skills: state.skills,
     projects: state.projects,
   }));
-  const updateResume = useResumeStore((state) => ({
-    updatePersonalInfo: state.updatePersonalInfo,
-    updateWorkExperience: state.updateWorkExperience,
-    updateEducation: state.updateEducation,
-    updateSkills: state.updateSkills,
-    updateProject: state.updateProject,
-  }));
 
-  const handleTailorResume = async () => {
-    setIsLoading(true);
-    console.log("Current Resume:", currentResume);
-    try {
-      const response = await fetch("/api/tailor-resume", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({currentResume, jobDescription}),
-      });
+  const {setUpdatedResume, clearUpdatedResume} = useUpdatedResumeStore();
 
-      if (!response.ok) {
-        throw new Error("Failed to tailor resume");
+  const {submit, isLoading, object} = experimental_useObject({
+    api: "/api/tailor-resume",
+    schema: tailoredResumeSchema,
+    onFinish({object}) {
+      if (object) {
+        setUpdatedResume(object.resume);
+        setJobDescription("");
+        jobDescriptionRef.current?.focus();
+        toast.success("Resume tailored successfully!");
+      } else {
+        console.error("Object is null or undefined");
+        toast.error("Failed to tailor resume. Please try again.");
       }
+    },
+    onError: (error) => {
+      console.error("Error in useObject:", error);
+      toast.error(
+        "An error occurred while tailoring the resume. Please try again."
+      );
+    },
+  });
 
-      const tailoredResume = await response.json();
-
-      // Update the resume store with the tailored resume
-      Object.entries(tailoredResume.personalInfo).forEach(([key, value]) => {
-        updateResume.updatePersonalInfo(
-          key as keyof typeof tailoredResume.personalInfo,
-          value as string
-        );
-      });
-
-      tailoredResume.workExperiences.forEach((exp) => {
-        updateResume.updateWorkExperience(exp);
-      });
-
-      Object.entries(tailoredResume.education).forEach(([key, value]) => {
-        updateResume.updateEducation(
-          key as keyof typeof tailoredResume.education,
-          value as string
-        );
-      });
-
-      updateResume.updateSkills(tailoredResume.skills);
-
-      tailoredResume.projects.forEach((project) => {
-        updateResume.updateProject(project);
-      });
-
-      alert("Resume tailored successfully!");
-    } catch (error) {
-      console.error("Error tailoring resume:", error);
-      alert("Failed to tailor resume. Please try again.");
-    } finally {
-      setIsLoading(false);
+  const handleTailorResume = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (jobDescription.trim()) {
+      submit({currentResume, jobDescription});
     }
   };
 
+  const handleClearTailoredResume = () => {
+    clearUpdatedResume();
+    setJobDescription("");
+  };
+
   return (
-    <div className="space-y-4">
-      <Textarea
-        placeholder="Paste the job description here..."
-        value={jobDescription}
-        onChange={(e) => setJobDescription(e.target.value)}
-        rows={10}
-      />
-      <Button onClick={handleTailorResume} disabled={isLoading}>
-        {isLoading ? "Tailoring..." : "Tailor Resume"}
-      </Button>
+    <div className="space-y-4 h-dvh mr-12">
+      <form onSubmit={handleTailorResume} className="space-y-4">
+        <Textarea
+          className="h-1/2"
+          placeholder="Paste the job description here..."
+          value={jobDescription}
+          onChange={(e) => setJobDescription(e.target.value)}
+          rows={10}
+          ref={jobDescriptionRef}
+          disabled={isLoading}
+        />
+        <div className="flex space-x-4">
+          <Button type="submit" disabled={isLoading || !jobDescription.trim()}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Tailoring...
+              </>
+            ) : (
+              "Tailor Resume"
+            )}
+          </Button>
+          <Button
+            onClick={handleClearTailoredResume}
+            variant="outline"
+            disabled={isLoading}
+          >
+            Clear Tailored Resume
+          </Button>
+        </div>
+      </form>
+
+      {isLoading && object?.resume && (
+        <div className="mt-4 p-4 border rounded">
+          <h3 className="font-bold mb-2">Tailoring Progress:</h3>
+          <pre className="whitespace-pre-wrap overflow-x-auto">
+            {JSON.stringify(object.resume, null, 2)}
+          </pre>
+        </div>
+      )}
     </div>
   );
 }
