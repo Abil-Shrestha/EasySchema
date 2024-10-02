@@ -3,13 +3,13 @@ import "./globals.css";
 
 import {Providers} from "@/components/providers";
 
-import {GeistSans} from "geist/font/sans";
 import {GeistMono} from "geist/font/mono";
+import {GeistSans} from "geist/font/sans";
 
 export const metadata: Metadata = {
-  title: "EZ Schema",
+  title: "Resume Tailor",
   description:
-    "Visualize and generate JSON Schema with a simple drag-and-drop interface.",
+    "Tailorobs with AI. Create a resume in seconds. Tailor your resume to a job description and download it as a PDF.",
 };
 
 export default function RootLayout({
