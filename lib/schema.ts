@@ -34,10 +34,10 @@ const tailoredResumeSchema = z.object({
               ),
             description: z
               .array(z.string())
-              .min(2)
+              .min(3)
               .max(5)
               .describe(
-                "3-5 Tailored bullet points describing key achievements. Each bullet should follow the XYZ format: I did X, using Y, as measured by Z. Start each bullet with an action verb and focus on quantifiable impact and relevant skills."
+                "3-5 Tailored bullet points describing key achievements. Each bullet should follow the XYZ format: I did X, using Y, as measured by Z. Start each bullet with an action verb and focus on quantifiable impact and relevant skills. ALWAYS provide at least 3 descriptions."
               ),
           })
         )
