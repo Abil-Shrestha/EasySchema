@@ -1,18 +1,51 @@
-import {tailoredResumeSchema} from "@/lib/schema";
-import {openai} from "@ai-sdk/openai";
-import {streamObject} from "ai";
-import {NextRequest, NextResponse} from "next/server";
+import { tailoredResumeSchema } from "@/lib/schema";
+import { openai } from "@ai-sdk/openai";
+import { streamObject } from "ai";
+import { NextRequest, NextResponse } from "next/server";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 export const maxDuration = 60;
 
+// Create a new ratelimiter, that allows 5 requests per 60 seconds
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(5, "60 s"),
+  analytics: true,
+  /**
+   * Optional prefix for the keys used in redis. This is useful if you want to share a redis
+   * instance with other applications and want to avoid key collisions. The default prefix is
+   * "@upstash/ratelimit"
+   */
+  prefix: "@upstash/ratelimit",
+});
+
 export async function POST(req: NextRequest) {
   try {
-    const {resumeText} = await req.json();
+    // Rate limiting logic
+    const ip = req.ip ?? "127.0.0.1";
+    const { success, limit, reset, remaining } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": limit.toString(),
+            "X-RateLimit-Remaining": remaining.toString(),
+            "X-RateLimit-Reset": reset.toString(),
+          },
+        }
+      );
+    }
+
+    const { resumeText } = await req.json();
 
     if (!resumeText) {
       return NextResponse.json(
-        {error: "No resume text provided"},
-        {status: 400}
+        { error: "No resume text provided" },
+        { status: 400 }
       );
     }
 
@@ -31,14 +64,21 @@ ${resumeText}
 
 IMPORTANT: Ensure that you only extract information that is explicitly stated in the resume. Do not add, modify, or enhance any information.`,
       schema: tailoredResumeSchema,
-      onFinish: async ({object}) => {
-        console.log("Extracted resume information:", object && object.resume);
+      onFinish: async ({ object }) => {
+        console.log("Extracted resume information:", object);
       },
     });
 
-    return result.toTextStreamResponse();
+    const response = result.toTextStreamResponse();
+
+    // Add rate limit headers to the response
+    response.headers.set("X-RateLimit-Limit", limit.toString());
+    response.headers.set("X-RateLimit-Remaining", remaining.toString());
+    response.headers.set("X-RateLimit-Reset", reset.toString());
+
+    return response;
   } catch (error) {
     console.error("Error processing resume:", error);
-    return NextResponse.json({error: "Error processing resume"}, {status: 500});
+    return NextResponse.json({ error: "Error processing resume" }, { status: 500 });
   }
 }

@@ -7,13 +7,14 @@ import {ResumeSchema} from "@/lib/schema";
 import {Education, PersonalInfo, useResumeStore} from "@/store/resumeStore";
 import {experimental_useObject as useObject} from "ai/react";
 import * as pdfjsLib from "pdfjs-dist";
+import {usePostHog} from "posthog-js/react";
 import {useEffect, useState} from "react";
 import {toast} from "sonner";
 
 export default function ResumeProcessor() {
   const [file, setFile] = useState<File | null>(null);
   const [pdfText, setPdfText] = useState<string>("");
-
+  const posthog = usePostHog();
   const {
     updatePersonalInfo,
     updateWorkExperiences,
@@ -71,7 +72,7 @@ export default function ResumeProcessor() {
     if (resume.projects) {
       updateProjects(resume.projects);
     }
-
+    posthog.capture("resume_processed");
     setResumeProcessed(true);
   };
 
