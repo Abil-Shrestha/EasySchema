@@ -5,6 +5,7 @@ import {Providers} from "@/components/providers";
 
 import {GeistMono} from "geist/font/mono";
 import {GeistSans} from "geist/font/sans";
+import {Toaster} from "sonner";
 
 export const metadata: Metadata = {
   title: "Resume Tailor",
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body
         className={`${GeistSans.variable} ${GeistMono.variable} antialiased  font-sans`}
       >
+        <Toaster richColors />
         <Providers>{children}</Providers>
       </body>
     </html>
