@@ -5,6 +5,8 @@ import {Providers} from "@/components/providers";
 
 import {GeistMono} from "geist/font/mono";
 import {GeistSans} from "geist/font/sans";
+import {Toaster} from "sonner";
+import {CSPostHogProvider} from "./providers";
 
 export const metadata: Metadata = {
   title: "Resume Tailor",
@@ -19,11 +21,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${GeistSans.variable} ${GeistMono.variable} antialiased  font-sans`}
-      >
-        <Providers>{children}</Providers>
-      </body>
+      <CSPostHogProvider>
+        <body
+          className={`${GeistSans.variable} ${GeistMono.variable} antialiased  font-sans`}
+        >
+          <Toaster position="top-center" richColors />
+          <Providers>{children}</Providers>
+        </body>
+      </CSPostHogProvider>
     </html>
   );
 }

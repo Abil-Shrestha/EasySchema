@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import {create} from "zustand";
+import {persist} from "zustand/middleware";
 
 export interface PersonalInfo {
   name: string;
@@ -37,39 +37,44 @@ export interface ResumeState {
   education: Education;
   skills: string;
   projects: Project[];
+  isResumeProcessed: boolean;
   updatePersonalInfo: (field: keyof PersonalInfo, value: string) => void;
   addWorkExperience: () => void;
   updateWorkExperience: (updatedExperience: WorkExperience) => void;
   removeWorkExperience: (id: number) => void;
+  updateWorkExperiences: (experiences: Omit<WorkExperience, "id">[]) => void;
   updateEducation: (field: keyof Education, value: string) => void;
   updateSkills: (skills: string) => void;
   addProject: () => void;
   updateProject: (updatedProject: Project) => void;
   removeProject: (id: number) => void;
+  updateProjects: (projects: Omit<Project, "id">[]) => void;
+  setResumeProcessed: (processed: boolean) => void;
 }
 
 export const useResumeStore = create<ResumeState>()(
   persist(
     (set) => ({
       personalInfo: {
-        name: '',
-        location: '',
-        email: '',
-        portfolio: '',
+        name: "",
+        location: "",
+        email: "",
+        portfolio: "",
       },
       workExperiences: [],
       education: {
-        university: '',
-        degree: '',
-        gpa: '',
-        graduationDate: '',
+        university: "",
+        degree: "",
+        gpa: "",
+        graduationDate: "",
       },
-      skills: '',
+      skills: "",
       projects: [],
+      isResumeProcessed: false,
 
       updatePersonalInfo: (field, value) =>
         set((state) => ({
-          personalInfo: { ...state.personalInfo, [field]: value },
+          personalInfo: {...state.personalInfo, [field]: value},
         })),
 
       addWorkExperience: () =>
@@ -78,11 +83,11 @@ export const useResumeStore = create<ResumeState>()(
             ...state.workExperiences,
             {
               id: Date.now(),
-              company: '',
-              location: '',
-              title: '',
-              date: '',
-              description: [''],
+              company: "",
+              location: "",
+              title: "",
+              date: "",
+              description: [""],
             },
           ],
         })),
@@ -99,12 +104,20 @@ export const useResumeStore = create<ResumeState>()(
           workExperiences: state.workExperiences.filter((exp) => exp.id !== id),
         })),
 
-      updateEducation: (field, value) =>
-        set((state) => ({
-          education: { ...state.education, [field]: value },
+      updateWorkExperiences: (experiences) =>
+        set(() => ({
+          workExperiences: experiences.map((exp) => ({
+            ...exp,
+            id: Date.now() + Math.random(),
+          })),
         })),
 
-      updateSkills: (skills) => set({ skills }),
+      updateEducation: (field, value) =>
+        set((state) => ({
+          education: {...state.education, [field]: value},
+        })),
+
+      updateSkills: (skills) => set({skills}),
 
       addProject: () =>
         set((state) => ({
@@ -112,9 +125,9 @@ export const useResumeStore = create<ResumeState>()(
             ...state.projects,
             {
               id: Date.now(),
-              name: '',
-              description: '',
-              technologies: '',
+              name: "",
+              description: "",
+              technologies: "",
             },
           ],
         })),
@@ -130,9 +143,18 @@ export const useResumeStore = create<ResumeState>()(
         set((state) => ({
           projects: state.projects.filter((project) => project.id !== id),
         })),
+      setResumeProcessed: (processed) => set({isResumeProcessed: processed}),
+
+      updateProjects: (projects) =>
+        set(() => ({
+          projects: projects.map((project) => ({
+            ...project,
+            id: Date.now() + Math.random(),
+          })),
+        })),
     }),
     {
-      name: 'resume-storage',
+      name: "resume-storage",
     }
   )
 );

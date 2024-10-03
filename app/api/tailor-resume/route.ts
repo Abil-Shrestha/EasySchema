@@ -1,12 +1,48 @@
-import {tailoredResumeSchema} from "@/lib/schema";
-import {openai} from "@ai-sdk/openai";
-import {streamObject} from "ai";
+import { tailoredResumeSchema } from "@/lib/schema";
+import { openai } from "@ai-sdk/openai";
+import { streamObject } from "ai";
+import { NextRequest, NextResponse } from "next/server";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 export const maxDuration = 60;
 
-export async function POST(req: Request) {
+// Create a new ratelimiter, that allows 5 requests per 60 seconds
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(5, "60 s"),
+  analytics: true,
+  prefix: "@upstash/ratelimit",
+});
+
+export async function POST(req: NextRequest) {
   try {
-    const {currentResume, jobDescription} = await req.json();
+    // Rate limiting logic
+    const ip = req.ip ?? "127.0.0.1";
+    const { success, limit, reset, remaining } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": limit.toString(),
+            "X-RateLimit-Remaining": remaining.toString(),
+            "X-RateLimit-Reset": reset.toString(),
+          },
+        }
+      );
+    }
+
+    const { currentResume, jobDescription } = await req.json();
+
+    if (!currentResume || !jobDescription) {
+      return NextResponse.json(
+        { error: "Current resume and job description are required" },
+        { status: 400 }
+      );
+    }
 
     const result = await streamObject({
       model: openai("gpt-4o-mini"), // Note: Changed from "gpt-4o-mini" to a valid model name
@@ -26,22 +62,24 @@ export async function POST(req: Request) {
       
       IMPORTANT: Review your output before finalizing. If any work experience has fewer than 3 descriptions, add more to meet the minimum requirement.`,
       schema: tailoredResumeSchema,
-      onFinish: async ({object}) => {
+      onFinish: async ({ object }) => {
         console.log("Object from openai is:", JSON.stringify(object));
       },
     });
 
-    return result.toTextStreamResponse();
+    const response = result.toTextStreamResponse();
+
+    // Add rate limit headers to the response
+    response.headers.set("X-RateLimit-Limit", limit.toString());
+    response.headers.set("X-RateLimit-Remaining", remaining.toString());
+    response.headers.set("X-RateLimit-Reset", reset.toString());
+
+    return response;
   } catch (error) {
     console.error("Error in tailor-resume API:", error);
-    return new Response(
-      JSON.stringify({
-        error: "An error occurred while processing your request",
-      }),
-      {
-        status: 500,
-        headers: {"Content-Type": "application/json"},
-      }
+    return NextResponse.json(
+      { error: "An error occurred while processing your request" },
+      { status: 500 }
     );
   }
 }

@@ -103,7 +103,127 @@ export type PartialResume = DeepPartial<
   z.infer<typeof tailoredResumeSchema>["resume"]
 >;
 
-// Define a type for the complete resume
-export type ResumeSchema = z.infer<typeof tailoredResumeSchema>["resume"];
+const ResumeSchema = z.object({
+  resume: z
+    .object({
+      personalInfo: z
+        .object({
+          name: z.string().optional().describe("Full name of the candidate."),
+          location: z
+            .string()
+            .optional()
+            .describe("City and state of the candidate's location."),
+          email: z
+            .string()
+            .optional()
+            .describe("Email address of the candidate"),
+          portfolio: z
+            .string()
+            .optional()
+            .describe("URL of the candidate's portfolio website"),
+        })
+        .partial()
+        .describe("Personal information section of the resume."),
 
-export {tailoredResumeSchema};
+      workExperiences: z
+        .array(
+          z
+            .object({
+              company: z
+                .string()
+                .optional()
+                .describe("Name of the employer or company."),
+              location: z
+                .string()
+                .optional()
+                .describe(
+                  "Location of the company or where the work was performed."
+                ),
+              title: z
+                .string()
+                .optional()
+                .describe("Job title or role of the candidate."),
+              date: z
+                .string()
+                .optional()
+                .describe(
+                  "Employment period in the format '[Start Month Year] - [End Month Year]' or '[Start Month Year] - Present'."
+                ),
+              description: z
+                .array(z.string())
+                .optional()
+                .describe("bullet points describing key achievements."),
+            })
+            .partial()
+        )
+        .optional()
+        .describe(
+          "Work experience section, including internships and relevant professional experiences tailored for the job."
+        ),
+
+      education: z
+        .object({
+          university: z
+            .string()
+            .optional()
+            .describe("Name of the university or educational institution."),
+          degree: z.string().optional().describe("Degree program and major."),
+          gpa: z.string().optional().describe("GPA"),
+          graduationDate: z
+            .string()
+            .optional()
+            .describe(
+              "Expected graduation date in the format 'Expected [Month Year]'."
+            ),
+        })
+        .partial()
+        .optional()
+        .describe("Education section of the resume."),
+
+      skills: z
+        .string()
+        .optional()
+        .describe(
+          "List of technical skills, programming languages, tools, and frameworks the candidate is proficient in. Separate different categories (e.g., 'Languages:', 'Frameworks:') for clarity."
+        ),
+
+      projects: z
+        .array(
+          z
+            .object({
+              id: z
+                .number()
+                .optional()
+                .describe("Unique identifier for the project entry."),
+              name: z.string().optional().describe("Name of the project."),
+              description: z
+                .string()
+                .optional()
+                .describe("Detailed description of the project"),
+              technologies: z
+                .string()
+                .optional()
+                .describe(
+                  "Comprehensive list of technologies, languages, frameworks, and tools used in the project."
+                ),
+              link: z
+                .string()
+                .optional()
+                .describe(
+                  "URL to the project repository, deployed version, or demo, if applicable."
+                ),
+            })
+            .partial()
+        )
+        .optional()
+        .describe(
+          "Projects section, highlighting relevant technical projects in detail. Each project should demonstrate technical skills, problem-solving abilities, and impact."
+        ),
+    })
+    .partial()
+    .describe(
+      "Complete structure of a tailored resume, limited to one page, with content adjusted to highlight skills and experiences most relevant to the job description."
+    ),
+});
+
+export {ResumeSchema, tailoredResumeSchema};

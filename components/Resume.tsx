@@ -19,6 +19,7 @@ import {PDFDownloadLink} from "@react-pdf/renderer";
 import {experimental_useObject} from "ai/react";
 import {Loader2, Plus} from "lucide-react";
 import React, {useEffect, useState} from "react";
+import { usePostHog } from "posthog-js/react";
 
 export default function ResumeBuildingApp() {
   const originalResume = useResumeStore();
@@ -27,6 +28,8 @@ export default function ResumeBuildingApp() {
   const [showTailoredResume, setShowTailoredResume] = useState(false);
   const [resumeToDisplay, setResumeToDisplay] =
     useState<ResumeSchema>(originalResume);
+
+    const posthog = usePostHog();
 
   useEffect(() => {
     setResumeToDisplay(
@@ -79,6 +82,9 @@ export default function ResumeBuildingApp() {
   
     // Update projects
     updatedResumeStore.updateProjects(tailoredResume.projects);
+
+    //capture events on posthog
+    posthog.capture("resume_tailored");
   };
 
   const {personalInfo, workExperiences, education, skills, projects} =
