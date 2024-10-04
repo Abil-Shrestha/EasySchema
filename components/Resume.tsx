@@ -18,8 +18,9 @@ import {
 import {PDFDownloadLink} from "@react-pdf/renderer";
 import {experimental_useObject} from "ai/react";
 import {Loader2, Plus} from "lucide-react";
+import {usePostHog} from "posthog-js/react";
 import React, {useEffect, useState} from "react";
-import { usePostHog } from "posthog-js/react";
+import PDFDownloadButton from "@/components/pdf-download";
 
 export default function ResumeBuildingApp() {
   const originalResume = useResumeStore();
@@ -29,7 +30,7 @@ export default function ResumeBuildingApp() {
   const [resumeToDisplay, setResumeToDisplay] =
     useState<ResumeSchema>(originalResume);
 
-    const posthog = usePostHog();
+  const posthog = usePostHog();
 
   useEffect(() => {
     setResumeToDisplay(
@@ -61,25 +62,31 @@ export default function ResumeBuildingApp() {
     // Update personal info
     Object.entries(tailoredResume.personalInfo).forEach(([key, value]) => {
       if (value) {
-        updatedResumeStore.updatePersonalInfo(key as keyof PersonalInfo, value as string);
+        updatedResumeStore.updatePersonalInfo(
+          key as keyof PersonalInfo,
+          value as string
+        );
       }
     });
-  
+
     // Update education
     Object.entries(tailoredResume.education).forEach(([key, value]) => {
       if (value) {
-        updatedResumeStore.updateEducation(key as keyof Education, value as string);
+        updatedResumeStore.updateEducation(
+          key as keyof Education,
+          value as string
+        );
       }
     });
-  
+
     // Update skills
     if (tailoredResume.skills) {
       updatedResumeStore.updateSkills(tailoredResume.skills);
     }
-  
+
     // Update work experiences
     updatedResumeStore.updateWorkExperiences(tailoredResume.workExperiences);
-  
+
     // Update projects
     updatedResumeStore.updateProjects(tailoredResume.projects);
 
@@ -322,9 +329,7 @@ export default function ResumeBuildingApp() {
       </div>
       {!isLoading && (
         <div className="flex justify-center mt-6 mb-6 print:hidden">
-          <Button>
-            <GeneratePDFButton />
-          </Button>
+          <PDFDownloadButton showTailoredResume={showTailoredResume} />
         </div>
       )}
       <div className="mt-6">

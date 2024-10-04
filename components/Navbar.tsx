@@ -1,9 +1,9 @@
 "use client";
 
-import {useState, useEffect, useRef} from "react";
-import Link from "next/link";
-import {useMediaQuery} from "react-responsive";
 import {cn} from "@/lib/utils";
+import Link from "next/link";
+import {useEffect, useRef, useState} from "react";
+import {useMediaQuery} from "react-responsive";
 
 const Logo = ({isCard}: {isCard: boolean}) => {
   const [logoRef, {width: logoWidth}] = useResizeObserver();
@@ -19,7 +19,7 @@ const Logo = ({isCard}: {isCard: boolean}) => {
     >
       <div
         className={cn(
-          "flex overflow-hidden transition-[width] duration-[450ms] [transition-timing-function:cubic-bezier(.6,.6,0,1)]",
+          "flex overflow-hidden transition-[width] duration-&lsqb;450ms&rsqb;[transition-timing-function:cubic-bezier(.6,.6,0,1)]",
           "w-[--header-logo-width-mobile] lg:w-[--header-logo-width-desktop]"
         )}
         style={
@@ -163,7 +163,7 @@ const MobileNav = ({
 
   return (
     <div
-      className="isolate w-full overflow-hidden transition-[height] duration-[450ms] [transition-timing-function:cubic-bezier(.6,.6,0,1)]"
+      className="isolate w-full overflow-hidden transition-[height] duration-&lsqb;450ms&rsqb;[transition-timing-function:cubic-bezier(.6,.6,0,1)]"
       style={{height: isExpanded && height ? height : 0}}
     >
       <div ref={contentRef} className="flex flex-col px-4 pb-5">
