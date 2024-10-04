@@ -98,10 +98,8 @@ const tailoredResumeSchema = z.object({
     ),
 });
 
-// Define a type for the partial resume during generation
-export type PartialResume = DeepPartial<
-  z.infer<typeof tailoredResumeSchema>["resume"]
->;
+
+export type ResumeSchema = z.infer<typeof tailoredResumeSchema>;
 
 const ResumeSchema = z.object({
   resume: z
@@ -227,3 +225,8 @@ const ResumeSchema = z.object({
 });
 
 export {ResumeSchema, tailoredResumeSchema};
+
+// Define a type for the partial resume during generation
+export type PartialResume = DeepPartial<
+  z.infer<typeof tailoredResumeSchema>["resume"]
+>;

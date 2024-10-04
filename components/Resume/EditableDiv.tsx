@@ -12,47 +12,50 @@ const EditableDiv: React.FC<EditableDivProps> = ({ value, onChange, placeholder,
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (ref.current) {
-      if (!value && !isFocused) {
-        ref.current.innerText = placeholder;
-      } else if (value !== ref.current.innerText) {
-        ref.current.innerText = value;
-      }
+    if (ref.current && value !== ref.current.textContent) {
+      ref.current.textContent = value;
     }
-  }, [value, placeholder, isFocused]);
+  }, [value]);
 
   const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
-    const newValue = e.currentTarget.innerText;
-    if (newValue !== placeholder && newValue !== value) {
-      onChange(newValue);
-    }
+    const newValue = e.currentTarget.textContent || "";
+    onChange(newValue);
   };
 
   const handleFocus = () => {
     setIsFocused(true);
-    if (ref.current && ref.current.innerText === placeholder) {
-      ref.current.innerText = "";
+    if (ref.current && !ref.current.textContent?.trim()) {
+      // Set cursor at the beginning of the div
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.setStart(ref.current, 0);
+      range.collapse(true);
+      sel?.removeAllRanges();
+      sel?.addRange(range);
     }
   };
 
   const handleBlur = () => {
     setIsFocused(false);
-    if (ref.current && ref.current.innerText.trim() === "") {
-      ref.current.innerText = placeholder;
-    }
   };
 
   return (
-    <div
-      ref={ref}
-      contentEditable
-      onInput={handleInput}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      className={`focus:outline-none focus:ring-2 focus:ring-blue-500 rounded min-w-[4em] shadow-elevationLight p-0.5 ${className} ${
-        !value && !isFocused ? "text-gray-400" : ""
-      }`}
-    />
+    <div className="relative">
+      <div
+        ref={ref}
+        contentEditable
+        onInput={handleInput}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        className={`focus:outline-none focus:ring-2 focus:ring-blue-500 rounded min-w-[4em] shadow-elevationLight p-0.5 ${className}`}
+        style={{ minHeight: '1.5em', wordBreak: 'break-word' }}
+      />
+      {!isFocused && !value && (
+        <div className="absolute top-0 left-0 p-0.5 text-gray-400 pointer-events-none">
+          {placeholder}
+        </div>
+      )}
+    </div>
   );
 };
 
