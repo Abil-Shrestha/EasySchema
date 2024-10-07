@@ -1,9 +1,9 @@
-import { tailoredResumeSchema } from "@/lib/schema";
-import { openai } from "@ai-sdk/openai";
-import { streamObject } from "ai";
-import { NextRequest, NextResponse } from "next/server";
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
+import {tailoredResumeSchema} from "@/lib/schema";
+import {openai} from "@ai-sdk/openai";
+import {Ratelimit} from "@upstash/ratelimit";
+import {Redis} from "@upstash/redis";
+import {streamObject} from "ai";
+import {type NextRequest, NextResponse} from "next/server";
 
 export const maxDuration = 60;
 
@@ -19,11 +19,11 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limiting logic
     const ip = req.ip ?? "127.0.0.1";
-    const { success, limit, reset, remaining } = await ratelimit.limit(ip);
+    const {success, limit, reset, remaining} = await ratelimit.limit(ip);
 
     if (!success) {
       return NextResponse.json(
-        { error: "Too many requests" },
+        {error: "Too many requests"},
         {
           status: 429,
           headers: {
@@ -35,12 +35,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { currentResume, jobDescription } = await req.json();
+    const {currentResume, jobDescription} = await req.json();
 
     if (!currentResume || !jobDescription) {
       return NextResponse.json(
-        { error: "Current resume and job description are required" },
-        { status: 400 }
+        {error: "Current resume and job description are required"},
+        {status: 400}
       );
     }
 
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       
       IMPORTANT: Review your output before finalizing. If any work experience has fewer than 3 descriptions, add more to meet the minimum requirement.`,
       schema: tailoredResumeSchema,
-      onFinish: async ({ object }) => {
+      onFinish: async ({object}) => {
         console.log("Object from openai is:", JSON.stringify(object));
       },
     });
@@ -78,8 +78,8 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Error in tailor-resume API:", error);
     return NextResponse.json(
-      { error: "An error occurred while processing your request" },
-      { status: 500 }
+      {error: "An error occurred while processing your request"},
+      {status: 500}
     );
   }
 }

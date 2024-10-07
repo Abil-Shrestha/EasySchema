@@ -1,9 +1,9 @@
-import { tailoredResumeSchema } from "@/lib/schema";
-import { openai } from "@ai-sdk/openai";
-import { streamObject } from "ai";
-import { NextRequest, NextResponse } from "next/server";
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
+import {tailoredResumeSchema} from "@/lib/schema";
+import {openai} from "@ai-sdk/openai";
+import {Ratelimit} from "@upstash/ratelimit";
+import {Redis} from "@upstash/redis";
+import {streamObject} from "ai";
+import {type NextRequest, NextResponse} from "next/server";
 
 export const maxDuration = 60;
 
@@ -24,11 +24,11 @@ export async function POST(req: NextRequest) {
   try {
     // Rate limiting logic
     const ip = req.ip ?? "127.0.0.1";
-    const { success, limit, reset, remaining } = await ratelimit.limit(ip);
+    const {success, limit, reset, remaining} = await ratelimit.limit(ip);
 
     if (!success) {
       return NextResponse.json(
-        { error: "Too many requests" },
+        {error: "Too many requests"},
         {
           status: 429,
           headers: {
@@ -40,12 +40,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { resumeText } = await req.json();
+    const {resumeText} = await req.json();
 
     if (!resumeText) {
       return NextResponse.json(
-        { error: "No resume text provided" },
-        { status: 400 }
+        {error: "No resume text provided"},
+        {status: 400}
       );
     }
 
@@ -64,7 +64,7 @@ ${resumeText}
 
 IMPORTANT: Ensure that you only extract information that is explicitly stated in the resume. Do not add, modify, or enhance any information.`,
       schema: tailoredResumeSchema,
-      onFinish: async ({ object }) => {
+      onFinish: async ({object}) => {
         console.log("Extracted resume information:", object);
       },
     });
@@ -79,6 +79,6 @@ IMPORTANT: Ensure that you only extract information that is explicitly stated in
     return response;
   } catch (error) {
     console.error("Error processing resume:", error);
-    return NextResponse.json({ error: "Error processing resume" }, { status: 500 });
+    return NextResponse.json({error: "Error processing resume"}, {status: 500});
   }
 }
