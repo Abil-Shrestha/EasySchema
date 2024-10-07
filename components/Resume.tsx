@@ -1,26 +1,29 @@
 import EditableDiv from "@/components/Resume/EditableDiv";
 import ProjectItem from "@/components/Resume/ProjectItem";
 import WorkExperienceItem from "@/components/Resume/WorkExperienceItem";
+import PartialProjectItem from "@/components/Resume/partial-project-item";
+import PartialWorkExperienceItem from "@/components/Resume/partial-work-experience-item";
 import ResumePDF from "@/components/ResumePDF";
+import PDFDownloadButton from "@/components/pdf-download";
 import {Button} from "@/components/ui/button";
 import {Label} from "@/components/ui/label";
 import {Switch} from "@/components/ui/switch";
 import {Textarea} from "@/components/ui/textarea";
-import {ResumeSchema, tailoredResumeSchema} from "@/lib/schema";
+import {type ResumeSchema, tailoredResumeSchema} from "@/lib/schema";
 import {useResumeStore} from "@/store/resumeStore";
 import {
-  Education,
-  PersonalInfo,
-  Project,
+  type Education,
+  type PersonalInfo,
+  type Project,
+  type WorkExperience,
   useUpdatedResumeStore,
-  WorkExperience,
 } from "@/store/updatedResumeStore";
 import {PDFDownloadLink} from "@react-pdf/renderer";
 import {experimental_useObject} from "ai/react";
 import {Loader2, Plus} from "lucide-react";
 import {usePostHog} from "posthog-js/react";
-import React, {useEffect, useState} from "react";
-import PDFDownloadButton from "@/components/pdf-download";
+import type React from "react";
+import {useEffect, useState} from "react";
 
 export default function ResumeBuildingApp() {
   const originalResume = useResumeStore();
@@ -206,127 +209,234 @@ export default function ResumeBuildingApp() {
       </div>
       <div className="bg-white p-8 border-dashed border relative">
         {isLoading && (
-          <div className="absolute top-0 left-0 right-0 bg-yellow-100 text-yellow-800 p-2 text-center">
-            Tailoring in progress...
+          <div className="absolute top-0 left-0 right-0 bg-yellow-500 text-yellow-800 p-2 text-center">
+            Tailoring...
           </div>
         )}
-        {/* Personal Info */}
-        <div className="text-center mb-6">
-          <EditableDiv
-            value={personalInfo.name}
-            onChange={(value) => updatePersonalInfo("name", value)}
-            placeholder="Your Name"
-            className="text-4xl font-bold mb-2"
-          />
-          <div className="flex justify-center items-center space-x-2">
-            <EditableDiv
-              value={personalInfo.location}
-              onChange={(value) => updatePersonalInfo("location", value)}
-              placeholder="Location"
-              className="inline-block"
-            />
-            <span className="text-gray-500">|</span>
-            <EditableDiv
-              value={personalInfo.email}
-              onChange={(value) => updatePersonalInfo("email", value)}
-              placeholder="Email"
-              className="inline-block"
-            />
-            <span className="text-gray-500">|</span>
-            <EditableDiv
-              value={personalInfo.portfolio}
-              onChange={(value) => updatePersonalInfo("portfolio", value)}
-              placeholder="Portfolio URL"
-              className="inline-block"
-            />
-          </div>
-        </div>
-
-        {/* Education */}
-        <div className="mb-6">
-          <h2 className="text-xl font-bold uppercase mb-2">Education</h2>
-          <div className="flex justify-between items-start">
-            <div className="flex-1">
+        {isLoading && object?.resume && (
+          <>
+            {/*Personal Info */}
+            <div className="text-center mb-6 opacity-50">
               <EditableDiv
-                value={education.university}
-                onChange={(value) => updateEducation("university", value)}
-                placeholder="University Name"
-                className="font-bold"
+                value={object.resume?.personalInfo?.name}
+                onChange={() => null}
+                placeholder="Your Name"
+                className="text-4xl font-bold mb-2"
               />
+              <div className="flex justify-center items-center space-x-2">
+                <EditableDiv
+                  value={object.resume?.personalInfo?.location}
+                  onChange={() => null}
+                  placeholder="Location"
+                  className="inline-block"
+                />
+                <span className="text-gray-500">|</span>
+                <EditableDiv
+                  value={object.resume?.personalInfo?.email}
+                  onChange={() => null}
+                  placeholder="Email"
+                  className="inline-block"
+                />
+                <span className="text-gray-500">|</span>
+                <EditableDiv
+                  value={object.resume?.personalInfo?.portfolio}
+                  onChange={() => null}
+                  placeholder="Portfolio URL"
+                  className="inline-block"
+                />
+              </div>
+            </div>
+            {/* Education */}
+            <div className="mb-6">
+              <h2 className="text-xl font-bold uppercase mb-2">Education</h2>
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <EditableDiv
+                    value={object.resume?.education?.university}
+                    onChange={(value) => updateEducation("university", value)}
+                    placeholder="University Name"
+                    className="font-bold"
+                  />
+                  <EditableDiv
+                    value={object.resume?.education?.degree}
+                    onChange={(value) => updateEducation("degree", value)}
+                    placeholder="Degree, Major, GPA"
+                  />
+                </div>
+                <div className="text-right">
+                  <EditableDiv
+                    value={object.resume?.education?.graduationDate}
+                    onChange={(value) =>
+                      updateEducation("graduationDate", value)
+                    }
+                    placeholder="Graduation Date"
+                    className="text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+            {/* Work Experience */}
+            <div className="mb-6">
+              <h2 className="text-xl font-bold uppercase mb-2">
+                Work Experience
+              </h2>
+              {object.resume?.workExperiences?.map((experience, index) => (
+                <PartialWorkExperienceItem
+                  key={experience.id || index}
+                  experience={experience}
+                />
+              ))}
+            </div>
+
+            {/*Projects */}
+            <div className="mb-6">
+              <h2 className="text-xl font-bold uppercase mb-2">Projects</h2>
+              {object.resume?.projects?.map((project, index) => (
+                <PartialProjectItem
+                  key={project.id || index}
+                  project={project}
+                />
+              ))}
+            </div>
+
+            {/* Skills */}
+            <div className="mb-6">
+              <h2 className="text-xl font-bold uppercase mb-2">Skills</h2>
               <EditableDiv
-                value={education.degree}
-                onChange={(value) => updateEducation("degree", value)}
-                placeholder="Degree, Major, GPA"
+                value={object?.resume?.skills}
+                onChange={updateSkills}
+                placeholder="List your skills here"
+                className="whitespace-pre-wrap"
               />
             </div>
-            <div className="text-right">
+          </>
+        )}
+        {!isLoading && (
+          <>
+            {/* Personal Info */}
+            <div className="text-center mb-6">
               <EditableDiv
-                value={education.graduationDate}
-                onChange={(value) => updateEducation("graduationDate", value)}
-                placeholder="Graduation Date"
-                className="text-sm"
+                value={personalInfo.name}
+                onChange={(value) => updatePersonalInfo("name", value)}
+                placeholder="Your Name"
+                className="text-4xl font-bold mb-2"
+              />
+              <div className="flex justify-center items-center space-x-2">
+                <EditableDiv
+                  value={personalInfo.location}
+                  onChange={(value) => updatePersonalInfo("location", value)}
+                  placeholder="Location"
+                  className="inline-block"
+                />
+                <span className="text-gray-500">|</span>
+                <EditableDiv
+                  value={personalInfo.email}
+                  onChange={(value) => updatePersonalInfo("email", value)}
+                  placeholder="Email"
+                  className="inline-block"
+                />
+                <span className="text-gray-500">|</span>
+                <EditableDiv
+                  value={personalInfo.portfolio}
+                  onChange={(value) => updatePersonalInfo("portfolio", value)}
+                  placeholder="Portfolio URL"
+                  className="inline-block"
+                />
+              </div>
+            </div>
+
+            {/* Education */}
+            <div className="mb-6">
+              <h2 className="text-xl font-bold uppercase mb-2">Education</h2>
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <EditableDiv
+                    value={education.university}
+                    onChange={(value) => updateEducation("university", value)}
+                    placeholder="University Name"
+                    className="font-bold"
+                  />
+                  <EditableDiv
+                    value={education.degree}
+                    onChange={(value) => updateEducation("degree", value)}
+                    placeholder="Degree, Major, GPA"
+                  />
+                </div>
+                <div className="text-right">
+                  <EditableDiv
+                    value={education.graduationDate}
+                    onChange={(value) =>
+                      updateEducation("graduationDate", value)
+                    }
+                    placeholder="Graduation Date"
+                    className="text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Work Experience */}
+            <div className="mb-6">
+              <h2 className="text-xl font-bold uppercase mb-2">
+                Work Experience
+              </h2>
+              {workExperiences.map((experience) => (
+                <WorkExperienceItem
+                  key={experience.id}
+                  experience={experience}
+                  updateExperience={updateWorkExperience}
+                  removeExperience={removeWorkExperience}
+                />
+              ))}
+              {!isLoading && (
+                <Button
+                  onClick={addWorkExperience}
+                  variant="outline"
+                  size="sm"
+                  className="print:hidden"
+                >
+                  <Plus className="w-4 h-4 mr-2" /> Add Work Experience
+                </Button>
+              )}
+            </div>
+
+            {/* Projects */}
+            <div className="mb-6">
+              <h2 className="text-xl font-bold uppercase mb-2">Projects</h2>
+              {projects.map((project) => (
+                <ProjectItem
+                  key={project.id}
+                  project={project}
+                  updateProject={updateProject}
+                  removeProject={removeProject}
+                />
+              ))}
+              {!isLoading && (
+                <Button
+                  onClick={addProject}
+                  variant="outline"
+                  size="sm"
+                  className="print:hidden"
+                >
+                  <Plus className="w-4 h-4 mr-2" /> Add Project
+                </Button>
+              )}
+            </div>
+
+            {/* Skills */}
+            <div className="mb-6">
+              <h2 className="text-xl font-bold uppercase mb-2">Skills</h2>
+              <EditableDiv
+                value={skills}
+                onChange={updateSkills}
+                placeholder="List your skills here"
+                className="whitespace-pre-wrap"
               />
             </div>
-          </div>
-        </div>
-
-        {/* Work Experience */}
-        <div className="mb-6">
-          <h2 className="text-xl font-bold uppercase mb-2">Work Experience</h2>
-          {workExperiences.map((experience) => (
-            <WorkExperienceItem
-              key={experience.id}
-              experience={experience}
-              updateExperience={updateWorkExperience}
-              removeExperience={removeWorkExperience}
-            />
-          ))}
-          {!isLoading && (
-            <Button
-              onClick={addWorkExperience}
-              variant="outline"
-              size="sm"
-              className="print:hidden"
-            >
-              <Plus className="w-4 h-4 mr-2" /> Add Work Experience
-            </Button>
-          )}
-        </div>
-
-        {/* Projects */}
-        <div className="mb-6">
-          <h2 className="text-xl font-bold uppercase mb-2">Projects</h2>
-          {projects.map((project) => (
-            <ProjectItem
-              key={project.id}
-              project={project}
-              updateProject={updateProject}
-              removeProject={removeProject}
-            />
-          ))}
-          {!isLoading && (
-            <Button
-              onClick={addProject}
-              variant="outline"
-              size="sm"
-              className="print:hidden"
-            >
-              <Plus className="w-4 h-4 mr-2" /> Add Project
-            </Button>
-          )}
-        </div>
-
-        {/* Skills */}
-        <div className="mb-6">
-          <h2 className="text-xl font-bold uppercase mb-2">Skills</h2>
-          <EditableDiv
-            value={skills}
-            onChange={updateSkills}
-            placeholder="List your skills here"
-            className="whitespace-pre-wrap"
-          />
-        </div>
+          </>
+        )}
       </div>
+
       {!isLoading && (
         <div className="flex justify-center mt-6 mb-6 print:hidden">
           <PDFDownloadButton showTailoredResume={showTailoredResume} />

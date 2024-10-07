@@ -17,7 +17,7 @@ export default function Home() {
   const isResumeProcessed = useResumeStore((state) => state.isResumeProcessed);
 
   posthog.capture("Started APP", {property: "100"});
-  
+
   return (
     <main className="flex min-h-screen">
       {!isResumeProcessed && <ResumeProcessor />}
