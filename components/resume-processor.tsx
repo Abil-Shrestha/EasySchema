@@ -4,7 +4,11 @@ import {Button} from "@/components/ui/button";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
 import {ResumeSchema} from "@/lib/schema";
-import {Education, PersonalInfo, useResumeStore} from "@/store/resumeStore";
+import {
+  type Education,
+  type PersonalInfo,
+  useResumeStore,
+} from "@/store/resumeStore";
 import {experimental_useObject as useObject} from "ai/react";
 import * as pdfjsLib from "pdfjs-dist";
 import {usePostHog} from "posthog-js/react";
@@ -15,6 +19,7 @@ export default function ResumeProcessor() {
   const [file, setFile] = useState<File | null>(null);
   const [pdfText, setPdfText] = useState<string>("");
   const posthog = usePostHog();
+
   const {
     updatePersonalInfo,
     updateWorkExperiences,
@@ -85,16 +90,16 @@ export default function ResumeProcessor() {
       console.log("Processed resume:", object);
       if (object && object.resume) {
         updateResumeWithProcessedData(object.resume);
-        toast("Resume processed successfully!");
+        toast.success("Resume processed successfully!");
       } else {
         console.error("Object or object.resume is null or undefined");
+        toast.error("Error processing resume. Please try again.");
       }
     },
     onError: (error) => {
       console.error("Error in processing resume:", error);
     },
   });
-
   const extractTextFromPdf = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -141,11 +146,11 @@ export default function ResumeProcessor() {
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-2xl max-h-[calc(100vh-2rem)] flex flex-col overflow-scroll">
       <CardHeader>
         <CardTitle>Resume Processor</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 overflow-auto">
         <div>
           <Input type="file" onChange={handleFileChange} accept=".pdf" />
           <Button
@@ -157,18 +162,10 @@ export default function ResumeProcessor() {
           </Button>
         </div>
         {error && <p className="text-red-500">{error.message}</p>}
-        {pdfText && (
-          <div>
-            <h3 className="text-lg font-semibold">Extracted PDF Text</h3>
-            <pre className="mt-2 p-4 bg-gray-100 rounded overflow-auto max-h-40">
-              {pdfText}
-            </pre>
-          </div>
-        )}
         {object && object.resume && (
           <div>
             <h3 className="text-lg font-semibold">Processed Resume</h3>
-            <pre className="mt-2 p-4 bg-gray-100 rounded overflow-auto">
+            <pre className="mt-2 p-4 bg-gray-100 rounded overflow-scroll">
               {JSON.stringify(object.resume, null, 2)}
             </pre>
           </div>

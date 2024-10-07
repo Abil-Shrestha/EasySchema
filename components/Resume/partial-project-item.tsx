@@ -1,44 +1,38 @@
-import type React from "react";
+import EditableDiv from "@/components/Resume/EditableDiv";
+import {Button} from "@/components/ui/button";
+import {Trash2} from "lucide-react";
 
-interface Project {
-  id?: number;
-  name?: string;
-  description?: string;
-  technologies?: string[];
-  link?: string;
-}
-
-interface PartialProjectItemProps {
-  project: Project;
-}
-
-const PartialProjectItem: React.FC<PartialProjectItemProps> = ({project}) => {
-  return (
-    <div className="mb-4 p-4 border border-gray-200 rounded-md">
-      <h3 className="font-semibold text-lg">
-        {project?.name || "Project Name"}
-      </h3>
-      <p className="text-sm mt-1">
-        {project.description || "Project description"}
-      </p>
-      {project.technologies && project?.technologies?.length > 0 && (
-        <div className="mt-2">
-          <span className="text-sm font-semibold">Technologies: </span>
-          <span className="text-sm">{project?.technologies?.join(", ")}</span>
-        </div>
-      )}
-      {project.link && (
-        <a
-          href={project.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-blue-600 hover:underline mt-2 inline-block"
-        >
-          Project Link
-        </a>
-      )}
+const ProjectItem = ({project}) => (
+  <div className="mb-4">
+    <div className="flex justify-between items-start">
+      <EditableDiv
+        value={project?.name}
+        onChange={() => null}
+        placeholder="Project Name"
+        className="font-bold"
+      />
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => null}
+        className="text-red-500 hover:text-red-700 print:hidden"
+      >
+        <Trash2 className="w-3 h-3" />
+      </Button>
     </div>
-  );
-};
+    <EditableDiv
+      value={project?.description}
+      onChange={() => null}
+      placeholder="Project description"
+      className="mt-1"
+    />
+    <EditableDiv
+      value={project?.technologies}
+      onChange={() => null}
+      placeholder="Technologies used"
+      className="mt-1 text-sm italic"
+    />
+  </div>
+);
 
-export default PartialProjectItem;
+export default ProjectItem;
