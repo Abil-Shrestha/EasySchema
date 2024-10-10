@@ -23,7 +23,6 @@ interface ResumePDFProps {
   projects: Project[];
 }
 
-// Register the fonts
 Font.register({
   family: "DMSans",
   fonts: [
@@ -42,65 +41,65 @@ const styles = StyleSheet.create({
   page: {
     flexDirection: "column",
     backgroundColor: "#FFFFFF",
-    padding: 16,
+    padding: 30,
     fontFamily: "DMSans",
   },
   section: {
-    marginBottom: 4,
+    marginBottom: 6,
   },
   heading: {
-    fontSize: 14,
-    marginBottom: 3,
+    fontSize: 12,
+    marginBottom: 2,
     fontWeight: "bold",
     textTransform: "uppercase",
   },
   personalInfo: {
     textAlign: "center",
-    marginBottom: 2,
+    marginBottom: 6,
   },
   name: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 3,
+    marginBottom: 2,
   },
   contactInfo: {
-    fontSize: 10,
+    fontSize: 9,
     flexDirection: "row",
     justifyContent: "center",
   },
   contactItem: {
-    marginHorizontal: 2,
+    marginHorizontal: 3,
   },
   separator: {
-    marginHorizontal: 2,
+    marginHorizontal: 3,
   },
   workExperience: {
-    marginBottom: 5,
+    marginBottom: 4,
   },
   companyHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 2,
+    marginBottom: 1,
   },
   company: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "bold",
   },
   location: {
-    fontSize: 10,
+    fontSize: 9,
     textAlign: "right",
   },
   jobHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 2,
+    marginBottom: 1,
   },
   jobTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontStyle: "italic",
   },
   date: {
-    fontSize: 10,
+    fontSize: 9,
     textAlign: "right",
   },
   bulletPoint: {
@@ -108,59 +107,64 @@ const styles = StyleSheet.create({
     marginBottom: 1,
   },
   bullet: {
-    width: 6,
-    fontSize: 10,
+    width: 8,
+    fontSize: 9,
   },
   bulletContent: {
     flex: 1,
-    fontSize: 10,
+    fontSize: 9,
   },
   education: {
-    marginBottom: 5,
+    marginBottom: 4,
   },
   universityHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 2,
+    marginBottom: 1,
   },
   university: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "bold",
   },
   graduationDate: {
-    fontSize: 10,
+    fontSize: 9,
     textAlign: "right",
   },
   degree: {
-    fontSize: 11,
+    fontSize: 10,
   },
   gpa: {
-    fontSize: 10,
+    fontSize: 9,
     marginTop: 1,
   },
   skills: {
-    fontSize: 10,
+    fontSize: 9,
   },
   project: {
-    marginBottom: 4,
+    marginBottom: 3,
+  },
+  projectHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 1,
   },
   projectName: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "bold",
-    marginBottom: 1,
-  },
-  projectDescription: {
-    fontSize: 10,
-    marginBottom: 1,
   },
   projectTechnologies: {
-    fontSize: 10,
+    fontSize: 9,
     fontStyle: "italic",
+  },
+  projectSeparator: {
+    marginHorizontal: 4,
+    fontSize: 9,
+    fontWeight: "normal",
   },
   sectionSeparator: {
     borderBottomWidth: 0.5,
     borderBottomColor: "#E0E0E0",
-    marginVertical: 3,
+    marginVertical: 2,
   },
   link: {
     color: "#1a0dab",
@@ -168,7 +172,6 @@ const styles = StyleSheet.create({
   },
 });
 
-// Create Document Component
 const ResumePDF: React.FC<ResumePDFProps> = ({
   personalInfo,
   workExperiences,
@@ -202,6 +205,9 @@ const ResumePDF: React.FC<ResumePDFProps> = ({
             </Text>
           </View>
           <Text style={styles.degree}>{education.degree}</Text>
+          {education.gpa && (
+            <Text style={styles.gpa}>GPA: {education.gpa}</Text>
+          )}
         </View>
       </View>
 
@@ -218,7 +224,7 @@ const ResumePDF: React.FC<ResumePDFProps> = ({
               <Text style={styles.jobTitle}>{exp.title}</Text>
               <Text style={styles.date}>{exp.date}</Text>
             </View>
-            {exp.description.map((item, i) => (
+            {exp.description.slice(0, 3).map((item, i) => (
               <View key={i} style={styles.bulletPoint}>
                 <Text style={styles.bullet}>•</Text>
                 <Text style={styles.bulletContent}>{item}</Text>
@@ -231,18 +237,21 @@ const ResumePDF: React.FC<ResumePDFProps> = ({
       <View style={styles.section}>
         <Text style={styles.heading}>Projects</Text>
         <View style={styles.sectionSeparator} />
-        {projects.map((project, index) => (
+        {projects.slice(0, 2).map((project, index) => (
           <View key={index} style={styles.project}>
-            <Text style={styles.projectName}>{project.name}</Text>
-            {project.description.map((item, i) => (
+            <View style={styles.projectHeader}>
+              <Text style={styles.projectName}>{project.name}</Text>
+              <Text style={styles.projectSeparator}>|</Text>
+              <Text style={styles.projectTechnologies}>
+                {project.technologies}
+              </Text>
+            </View>
+            {project.description.slice(0, 2).map((item, i) => (
               <View key={i} style={styles.bulletPoint}>
                 <Text style={styles.bullet}>•</Text>
                 <Text style={styles.bulletContent}>{item}</Text>
               </View>
             ))}
-            <Text style={styles.projectTechnologies}>
-              Technologies: {project.technologies}
-            </Text>
           </View>
         ))}
       </View>

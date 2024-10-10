@@ -77,7 +77,7 @@ const tailoredResumeSchema = z.object({
               .max(5)
               .optional()
               .describe(
-                "1-5 Detailed description of the project (1-3 sentences) covering: 1) The problem or challenge addressed, 2) The solution implemented, 3) Technologies and methodologies used. Do not invent projects or exaggerate their scope. Stick to the facts provided in the original resume."
+                "1-5 Detailed description of the project (1-3 sentences) covering: 1) The problem or challenge addressed, 2) The solution implemented, 3) Technologies and methodologies used.Do not invent projects or exaggerate their scope. Stick to the facts provided in the original resume."
               ),
             technologies: z
               .string()
