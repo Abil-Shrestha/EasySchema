@@ -33,8 +33,12 @@ export default function ResumeBuildingApp() {
   const updatedResumeStore = useUpdatedResumeStore();
   const [jobDescription, setJobDescription] = useState("");
   const [showTailoredResume, setShowTailoredResume] = useState(false);
-  const [resumeToDisplay, setResumeToDisplay] =
-    useState<any>(originalResume);
+
+  const [resumeToDisplay, setResumeToDisplay] = useState<any>(originalResume);
+
+  const setHighlightList = useUpdatedResumeStore(
+    (state) => state.setHighlightList
+  );
 
   const posthog = usePostHog();
 
@@ -55,6 +59,7 @@ export default function ResumeBuildingApp() {
         updateResumeWithTailoredData(object.resume);
         setJobDescription("");
         setShowTailoredResume(true);
+        setHighlightList(true);
         toast.success("Resume Tailored Successfully!");
       } else {
         console.error("Object or object.resume is null or undefined");
@@ -200,6 +205,17 @@ export default function ResumeBuildingApp() {
       {({loading}) => (loading ? "Generating PDF..." : "Download PDF")}
     </PDFDownloadLink>
   );
+  
+  const handleSwitchChange = (checked: boolean) => {
+    setShowTailoredResume(checked);
+    
+    // If switching to tailored resume, highlight the list
+    if (checked) {
+      setHighlightList(true);
+    } else {
+      setHighlightList(false);
+    }
+  };
 
   return (
     <DashedBorder>
@@ -209,7 +225,7 @@ export default function ResumeBuildingApp() {
           <Switch
             id="resume-switch"
             checked={showTailoredResume}
-            onCheckedChange={setShowTailoredResume}
+            onCheckedChange={handleSwitchChange}
             disabled={!updatedResumeStore.personalInfo.name}
           />
         </div>
