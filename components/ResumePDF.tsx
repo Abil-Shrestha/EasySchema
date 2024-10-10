@@ -1,18 +1,18 @@
-import React from "react";
 import {
   Document,
+  Font,
+  Link,
   Page,
+  StyleSheet,
   Text,
   View,
-  StyleSheet,
-  Link,
-  Font,
 } from "@react-pdf/renderer";
-import {
-  PersonalInfo,
-  WorkExperience,
+import type React from "react";
+import type {
   Education,
+  PersonalInfo,
   Project,
+  WorkExperience,
 } from "../store/resumeStore";
 
 interface ResumePDFProps {
@@ -46,25 +46,25 @@ const styles = StyleSheet.create({
     fontFamily: "DMSans",
   },
   section: {
-    marginBottom: 3,
+    marginBottom: 4,
   },
   heading: {
-    fontSize: 12, // Reduced from 16 to 12 for section headings
-    marginBottom: 2,
+    fontSize: 14,
+    marginBottom: 3,
     fontWeight: "bold",
     textTransform: "uppercase",
   },
   personalInfo: {
     textAlign: "center",
-    marginBottom: 1,
-  },
-  name: {
-    fontSize: 24, // Kept at 24 as per your approval
-    fontWeight: "bold",
     marginBottom: 2,
   },
+  name: {
+    fontSize: 28,
+    fontWeight: "bold",
+    marginBottom: 3,
+  },
   contactInfo: {
-    fontSize: 9, // Reduced to 9 for contact information
+    fontSize: 10,
     flexDirection: "row",
     justifyContent: "center",
   },
@@ -75,92 +75,92 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
   workExperience: {
-    marginBottom: 4,
+    marginBottom: 5,
   },
   companyHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 1,
+    marginBottom: 2,
   },
   company: {
-    fontSize: 11, // Reduced from 16 to 11 for company names
+    fontSize: 13,
     fontWeight: "bold",
   },
   location: {
-    fontSize: 9, // Kept at 9 for location
+    fontSize: 10,
     textAlign: "right",
   },
   jobHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 1,
+    marginBottom: 2,
   },
   jobTitle: {
-    fontSize: 10, // Increased slightly to 10 for job titles
+    fontSize: 11,
     fontStyle: "italic",
   },
   date: {
-    fontSize: 9, // Kept at 9 for dates
+    fontSize: 10,
     textAlign: "right",
   },
   bulletPoint: {
     flexDirection: "row",
-    marginBottom: 0.5,
+    marginBottom: 1,
   },
   bullet: {
     width: 6,
-    fontSize: 9, // Kept at 9 for bullet points
+    fontSize: 10,
   },
   bulletContent: {
     flex: 1,
-    fontSize: 9, // Kept at 9 for bullet content
+    fontSize: 10,
   },
   education: {
-    marginBottom: 4,
+    marginBottom: 5,
   },
   universityHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 1,
+    marginBottom: 2,
   },
   university: {
-    fontSize: 11, // Reduced from 16 to 11 for university names
+    fontSize: 13,
     fontWeight: "bold",
   },
   graduationDate: {
-    fontSize: 9, // Kept at 9 for graduation dates
+    fontSize: 10,
     textAlign: "right",
   },
   degree: {
-    fontSize: 10, // Increased slightly to 10 for degree information
+    fontSize: 11,
   },
   gpa: {
-    fontSize: 9, // Kept at 9 for GPA
-    marginTop: 0.5,
+    fontSize: 10,
+    marginTop: 1,
   },
   skills: {
-    fontSize: 9, // Kept at 9 for skills
+    fontSize: 10,
   },
   project: {
-    marginBottom: 3,
+    marginBottom: 4,
   },
   projectName: {
-    fontSize: 11, // Reduced from 16 to 11 for project names
+    fontSize: 13,
     fontWeight: "bold",
-    marginBottom: 0.5,
+    marginBottom: 1,
   },
   projectDescription: {
-    fontSize: 9, // Kept at 9 for project descriptions
-    marginBottom: 0.5,
+    fontSize: 10,
+    marginBottom: 1,
   },
   projectTechnologies: {
-    fontSize: 9, // Kept at 9 for project technologies
+    fontSize: 10,
     fontStyle: "italic",
   },
   sectionSeparator: {
     borderBottomWidth: 0.5,
     borderBottomColor: "#E0E0E0",
-    marginVertical: 2,
+    marginVertical: 3,
   },
   link: {
     color: "#1a0dab",
@@ -234,9 +234,14 @@ const ResumePDF: React.FC<ResumePDFProps> = ({
         {projects.map((project, index) => (
           <View key={index} style={styles.project}>
             <Text style={styles.projectName}>{project.name}</Text>
-            <Text style={styles.projectDescription}>{project.description}</Text>
+            {project.description.map((item, i) => (
+              <View key={i} style={styles.bulletPoint}>
+                <Text style={styles.bullet}>•</Text>
+                <Text style={styles.bulletContent}>{item}</Text>
+              </View>
+            ))}
             <Text style={styles.projectTechnologies}>
-              {project.technologies}
+              Technologies: {project.technologies}
             </Text>
           </View>
         ))}

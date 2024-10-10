@@ -37,7 +37,7 @@ const tailoredResumeSchema = z.object({
               .min(3)
               .max(5)
               .describe(
-                "3-5 Tailored bullet points describing key achievements. Each bullet should follow the XYZ format: I did X, using Y, as measured by Z. Start each bullet with an action verb and focus on quantifiable impact and relevant skills. ALWAYS provide at least 3 descriptions."
+                "3-5 Tailored bullet points describing key achievements. Each bullet should follow the XYZ format: I did X, using Y, as measured by Z. Start each bullet with an action verb and focus on quantifiable impact and relevant skills. ALWAYS provide at least 3 descriptions. Do not invent or exaggerate experiences. If adding details to meet the minimum requirement, use conservative estimates and qualify them with phrases like 'approximately' or 'estimated'."
               ),
           })
         )
@@ -72,9 +72,12 @@ const tailoredResumeSchema = z.object({
             id: z.number().describe("Unique identifier for the project entry."),
             name: z.string().describe("Name of the project."),
             description: z
-              .string()
+              .array(z.string())
+              .min(1)
+              .max(5)
+              .optional()
               .describe(
-                "Detailed description of the project (3-5 sentences) covering: 1) The problem or challenge addressed, 2) The solution implemented, 3) Technologies and methodologies used, 4) Your specific role and contributions, 5) Quantifiable results or impact. Use technical language relevant to the job description."
+                "1-5 Detailed description of the project (3-5 sentences) covering: 1) The problem or challenge addressed, 2) The solution implemented, 3) Technologies and methodologies used, 4) Your specific role and contributions, 5) Quantifiable results or impact. Use technical language relevant to the job description. Do not invent projects or exaggerate their scope. Stick to the facts provided in the original resume."
               ),
             technologies: z
               .string()
@@ -97,7 +100,6 @@ const tailoredResumeSchema = z.object({
       "Complete structure of a tailored resume, limited to one page, with content adjusted to highlight skills and experiences most relevant to the job description."
     ),
 });
-
 
 export type ResumeSchema = z.infer<typeof tailoredResumeSchema>;
 
@@ -195,9 +197,11 @@ const ResumeSchema = z.object({
                 .describe("Unique identifier for the project entry."),
               name: z.string().optional().describe("Name of the project."),
               description: z
-                .string()
+                .array(z.string())
                 .optional()
-                .describe("Detailed description of the project"),
+                .describe(
+                  "Bullet points describing the project details, including problem addressed, solution implemented, technologies used, role, and impact."
+                ),
               technologies: z
                 .string()
                 .optional()

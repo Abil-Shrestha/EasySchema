@@ -27,7 +27,7 @@ export interface Education {
 export interface Project {
   id?: number;
   name: string;
-  description: string;
+  description: string[];
   technologies: string;
 }
 
@@ -49,6 +49,8 @@ export interface UpdatedResumeState {
   updateProject: (updatedProject: Project) => void;
   removeProject: (id: number) => void;
   clearUpdatedResume: () => void;
+  highlightList: boolean;
+  setHighlightList: (value: boolean) => void;
 }
 
 const initialResume: Omit<
@@ -79,6 +81,11 @@ export const useUpdatedResumeStore = create<UpdatedResumeState>()(
   persist(
     (set) => ({
       ...initialResume,
+
+
+      highlightList: false,
+      setHighlightList: (value) => set({ highlightList: value }),
+
 
       updatePersonalInfo: (field, value) =>
         set((state) => ({
