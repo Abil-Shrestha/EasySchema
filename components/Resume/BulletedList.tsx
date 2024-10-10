@@ -8,12 +8,12 @@ const BulletedList = ({items, onItemChange, onAddItem, onRemoveItem}) => {
       <ul className="list-disc pl-5">
         {items.map((item, index) => (
           <li key={index} className="group">
-            <div className="flex items-start">
+            <div className="flex items-start ">
               <EditableDiv
                 value={item}
                 onChange={(value) => onItemChange(index, value)}
                 placeholder="Job responsibility"
-                className="flex-grow leading-5"
+                className="flex-grow leading-5 bg-yellow-100"
               />
               <Button
                 variant="ghost"

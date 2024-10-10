@@ -27,7 +27,7 @@ export interface Education {
 export interface Project {
   id: number;
   name: string;
-  description: string;
+  description: string[];
   technologies: string;
 }
 
@@ -126,7 +126,7 @@ export const useResumeStore = create<ResumeState>()(
             {
               id: Date.now(),
               name: "",
-              description: "",
+              description: [""],
               technologies: "",
             },
           ],

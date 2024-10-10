@@ -34,7 +34,7 @@ export default function ResumeBuildingApp() {
   const [jobDescription, setJobDescription] = useState("");
   const [showTailoredResume, setShowTailoredResume] = useState(false);
   const [resumeToDisplay, setResumeToDisplay] =
-    useState<ResumeSchema>(originalResume);
+    useState<any>(originalResume);
 
   const posthog = usePostHog();
 
@@ -62,7 +62,7 @@ export default function ResumeBuildingApp() {
       }
     },
     onError: (error) => {
-      console.error("Error in useObject:", error);
+      console.log("Error in useObject:", error);
     },
   });
 
