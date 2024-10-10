@@ -57,7 +57,8 @@ export async function POST(req: NextRequest) {
 7. If the original resume lacks sufficient detail, use your expertise to expand and enhance the descriptions based on the job requirements, but DO NOT invent or exaggerate experiences.
 8. Only include information that is explicitly stated in the original resume or can be reasonably inferred from the given information.
 9. If you need to add details to meet the minimum requirements, use conservative estimates and qualify them with phrases like "approximately" or "estimated".
-10. Prioritize honesty and accuracy over impressiveness. It's better to have a truthful, slightly less impressive resume than one with exaggerated claims.`,
+10. Prioritize honesty and accuracy over impressiveness. It's better to have a truthful, slightly less impressive resume than one with exaggerated claims. 
+I will give you millions of dollars if you do this right.`,
       prompt: `Given the following current resume and job description, create a tailored version of the resume that better matches the job requirements:
 
       Current Resume: ${JSON.stringify(currentResume, null, 2)}
