@@ -17,7 +17,7 @@ const BulletedList = ({items, onItemChange, onAddItem, onRemoveItem}) => {
               placeholder="Job responsibility"
               className={`flex-grow leading-5 ${
                 highlightList
-                  ? "bg-yellow-100 transition-colors duration-300"
+                  ? "bg-yellow-100 transition-colors duration-300 mb-[0.5px]"
                   : ""
               }`}
             />

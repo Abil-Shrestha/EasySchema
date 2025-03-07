@@ -1,9 +1,10 @@
 "use client";
 
 import ErrorBoundary from "@/components/error-boundary";
-import {useResumeStore} from "@/store/resumeStore";
+import { useResumeStore } from "@/store/resumeStore";
 import dynamic from "next/dynamic";
-import {usePostHog} from "posthog-js/react";
+import { usePostHog } from "posthog-js/react";
+import WelcomeModal from "@/components/welcome-modal";
 
 const ResumeBuildingApp = dynamic(() => import("@/components/Resume"), {
   ssr: false,
@@ -12,19 +13,23 @@ const ResumeBuildingApp = dynamic(() => import("@/components/Resume"), {
 const ResumeProcessor = dynamic(() => import("@/components/resume-processor"), {
   ssr: false,
 });
-import DashedBorder from  "@/components/decorative-border";
+import DashedBorder from "@/components/decorative-border";
 
 export default function Home() {
   const posthog = usePostHog();
   const isResumeProcessed = useResumeStore((state) => state.isResumeProcessed);
 
-  posthog.capture("App  Started", {property: "100"});
+  posthog.capture("App Started", { property: "100" });
 
   return (
     <ErrorBoundary>
+      <WelcomeModal />
       <main className="flex min-h-screen items-center justify-center">
-        {!isResumeProcessed && <ResumeProcessor />}
-        <ResumeBuildingApp />
+        {!isResumeProcessed ? (
+          <ResumeProcessor />
+        ) : (
+          <ResumeBuildingApp />
+        )}
       </main>
     </ErrorBoundary>
   );
