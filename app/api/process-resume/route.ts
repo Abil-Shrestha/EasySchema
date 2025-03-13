@@ -1,4 +1,4 @@
-import { tailoredResumeSchema } from "@/lib/schema";
+import { ResumeSchema } from "@/lib/schema";
 import { google } from '@ai-sdk/google';
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
@@ -10,7 +10,7 @@ export const maxDuration = 60;
 // Create a new ratelimiter, that allows 5 requests per 60 seconds
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(5, "60 s"),
+  limiter: Ratelimit.slidingWindow(10, "60 s"),
   analytics: true,
   /**
    * Optional prefix for the keys used in redis. This is useful if you want to share a redis
@@ -80,16 +80,21 @@ export async function POST(req: NextRequest) {
       system: `You are an AI assistant designed to extract structured information from resumes. Your task is to analyze the given resume text and extract relevant information according to the provided schema. Follow these strict guidelines:
 
 1. Extract information EXACTLY as it appears in the resume. Do not modify, enhance, or add any information.
-2. If a field in the schema is not present in the resume, leave it blank or null.
+2. If a field in the schema is not present in the resume, omit that field entirely.
 3. Do not make assumptions or inferences about missing information.
 4. Maintain the original wording and formatting of the resume content as much as possible within the constraints of the schema.
-5. For work experiences and projects, extract only the information that is explicitly stated in the resume.`,
+5. For work experiences and projects, extract only the information that is explicitly stated in the resume.
+6. Ensure all required fields have valid values - do not return undefined or null values.`,
       prompt: `Extract the relevant information from the following resume text and format it according to the provided schema. Remember to extract the information exactly as it appears without any modifications:
 
 ${body.resumeText}
 
-IMPORTANT: Ensure that you only extract information that is explicitly stated in the resume. Do not add, modify, or enhance any information.`,
-      schema: tailoredResumeSchema,
+IMPORTANT: 
+1. Only extract information that is explicitly stated in the resume.
+2. Do not add, modify, or enhance any information.
+3. Omit any fields that don't have valid values in the resume.
+4. Ensure the response matches the schema exactly.`,
+      schema: ResumeSchema,
       onFinish: async ({ object }) => {
         console.log("AI processing complete, validating response...");
         if (!object) {
@@ -98,6 +103,8 @@ IMPORTANT: Ensure that you only extract information that is explicitly stated in
         if (!object.resume) {
           throw new Error("AI response missing resume data");
         }
+        // Log the actual response for debugging
+        console.log("Resume data:", JSON.stringify(object.resume, null, 2));
         console.log("Resume data validation successful");
       },
     });

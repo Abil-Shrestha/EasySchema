@@ -3,15 +3,18 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ResumeSchema } from "@/lib/schema";
+import { type Resume, type ResumeData, ResumeSchema } from "@/lib/schema";
 import {
   type Education,
   type PersonalInfo,
+  type Project,
+  type WorkExperience,
   useResumeStore,
 } from "@/store/resumeStore";
 import { experimental_useObject as useObject } from "@ai-sdk/react";
 import { AlertCircle, CheckCircle, FileText, Loader, Upload } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
+import type { TextItem, TextMarkedContent } from "pdfjs-dist/types/src/display/api";
 import { usePostHog } from "posthog-js/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -33,7 +36,7 @@ export default function ResumeProcessor() {
   } = useResumeStore();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
+    if (event.target.files?.[0]) {
       const selectedFile = event.target.files[0];
       if (selectedFile.type === "application/pdf") {
         setFile(selectedFile);
@@ -43,21 +46,21 @@ export default function ResumeProcessor() {
     }
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = (e: React.DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsDragging(true);
   };
 
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragLeave = (e: React.DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDrop = (e: React.DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setIsDragging(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    if (e.dataTransfer.files?.[0]) {
       const droppedFile = e.dataTransfer.files[0];
       if (droppedFile.type === "application/pdf") {
         setFile(droppedFile);
@@ -86,28 +89,31 @@ export default function ResumeProcessor() {
     setupPdfWorker();
   }, []);
 
-  const updateResumeWithProcessedData = (resumeData: any) => {
+  const updateResumeWithProcessedData = (resumeData: ResumeData) => {
     // Update personal info
     if (resumeData.personalInfo) {
       for (const [key, value] of Object.entries(resumeData.personalInfo)) {
         if (value) {
-          updatePersonalInfo(key as keyof PersonalInfo, value as string);
+          updatePersonalInfo(key as keyof PersonalInfo, value);
         }
       }
     }
 
     // Update work experiences
     if (resumeData.workExperiences) {
-      updateWorkExperiences(resumeData.workExperiences);
+      const validExperiences = resumeData.workExperiences.filter(exp =>
+        exp.company && exp.title && exp.location && exp.date && exp.description
+      ) as WorkExperience[];
+      updateWorkExperiences(validExperiences);
     }
 
     // Update education
     if (resumeData.education) {
-      Object.entries(resumeData.education).forEach(([key, value]) => {
+      for (const [key, value] of Object.entries(resumeData.education)) {
         if (value) {
-          updateEducation(key as keyof Education, value as string);
+          updateEducation(key as keyof Education, value);
         }
-      });
+      }
     }
 
     // Update skills
@@ -117,29 +123,47 @@ export default function ResumeProcessor() {
 
     // Update projects
     if (resumeData.projects) {
-      updateProjects(resumeData.projects);
+      const validProjects = resumeData.projects.filter(proj =>
+        proj.name && proj.description && proj.technologies && proj.link
+      ) as Project[];
+      updateProjects(validProjects);
     }
+
     posthog.capture("resume_processed");
     setResumeProcessed(true);
   };
 
-  const { submit, isLoading, object, error } = useObject<{
-    resume: any;
-  }>({
+  const { submit, isLoading, object, error } = useObject<Resume>({
     api: "/api/process-resume",
     schema: ResumeSchema,
     onFinish({ object }) {
       console.log("Raw response object:", object);
       if (!object) {
         console.error("Response object is null or undefined");
-        toast.error("Error: Invalid response from server");
+        toast.error("Error: Failed to process resume. Please try again.");
         return;
       }
 
       if (!object.resume) {
         console.error("Response object has no resume data:", object);
-        toast.error("Error: No resume data in response");
+        toast.error("Error: Failed to extract resume data. Please ensure your PDF contains readable text.");
         return;
+      }
+
+      // Validate required fields
+      const validationErrors: string[] = [];
+
+      if (object.resume.workExperiences?.some(exp => !exp.company || !exp.title)) {
+        validationErrors.push("Some work experiences are missing required fields");
+      }
+
+      if (object.resume.projects?.some(proj => !proj.name)) {
+        validationErrors.push("Some projects are missing required fields");
+      }
+
+      if (validationErrors.length > 0) {
+        console.warn("Validation errors:", validationErrors);
+        toast.warning("Some resume sections may be incomplete. Please verify the extracted data.");
       }
 
       try {
@@ -147,7 +171,7 @@ export default function ResumeProcessor() {
         toast.success("Resume processed successfully!");
       } catch (error) {
         console.error("Error updating resume data:", error);
-        toast.error("Error updating resume data");
+        toast.error("Error updating resume data. Please try again.");
       }
     },
     onError: (error) => {
@@ -163,8 +187,10 @@ export default function ResumeProcessor() {
           toast.error("Request timed out. Please try again.");
         } else if (error.message.includes("validation")) {
           toast.error("Invalid resume format. Please check your PDF and try again.");
+        } else if (error.message.includes("AI response")) {
+          toast.error("Failed to process resume content. Please ensure your PDF contains clear, readable text.");
         } else {
-          toast.error(`Error: ${error.message}`);
+          toast.error(`Error processing resume: ${error.message}`);
         }
       } else {
         toast.error("An unexpected error occurred. Please try again.");
@@ -187,9 +213,14 @@ export default function ResumeProcessor() {
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
             const pageText = textContent.items
-              .map((item: any) => item.str)
+              .map((item: TextItem | TextMarkedContent) => {
+                if ('str' in item) {
+                  return item.str;
+                }
+                return '';
+              })
               .join(" ");
-            fullText += pageText + "\n\n";
+            fullText += `${pageText}\n\n`;
           }
 
           resolve(fullText);
@@ -239,7 +270,7 @@ export default function ResumeProcessor() {
   };
 
   // Function to format JSON for display
-  const formatJSON = (json: any) => {
+  const formatJSON = (json: ResumeData) => {
     if (!json) return null;
 
     return (
@@ -249,10 +280,12 @@ export default function ResumeProcessor() {
             <h4 className="font-medium text-primary">Personal Information</h4>
             <div className="grid grid-cols-2 gap-2 mt-1">
               {Object.entries(json.personalInfo).map(([key, value]) => (
-                <div key={key} className="text-sm">
-                  <span className="font-medium">{key}: </span>
-                  <span>{String(value)}</span>
-                </div>
+                value && (
+                  <div key={key} className="text-sm">
+                    <span className="font-medium">{key}: </span>
+                    <span>{String(value)}</span>
+                  </div>
+                )
               ))}
             </div>
           </div>
@@ -263,10 +296,12 @@ export default function ResumeProcessor() {
             <h4 className="font-medium text-primary">Education</h4>
             <div className="grid grid-cols-2 gap-2 mt-1">
               {Object.entries(json.education).map(([key, value]) => (
-                <div key={key} className="text-sm">
-                  <span className="font-medium">{key}: </span>
-                  <span>{String(value)}</span>
-                </div>
+                value && (
+                  <div key={key} className="text-sm">
+                    <span className="font-medium">{key}: </span>
+                    <span>{String(value)}</span>
+                  </div>
+                )
               ))}
             </div>
           </div>
@@ -283,17 +318,17 @@ export default function ResumeProcessor() {
           <div>
             <h4 className="font-medium text-primary">Work Experience</h4>
             <div className="space-y-2 mt-1">
-              {json.workExperiences.map((exp: any, index: number) => (
-                <div key={index} className="text-sm border-l-2 border-primary/30 pl-2">
-                  <div><span className="font-medium">Company: </span>{exp.company}</div>
-                  <div><span className="font-medium">Title: </span>{exp.title}</div>
-                  <div><span className="font-medium">Date: </span>{exp.date}</div>
+              {json.workExperiences.map((exp, index) => (
+                <div key={`${exp.company}-${index}`} className="text-sm border-l-2 border-primary/30 pl-2">
+                  {exp.company && <div><span className="font-medium">Company: </span>{exp.company}</div>}
+                  {exp.title && <div><span className="font-medium">Title: </span>{exp.title}</div>}
+                  {exp.date && <div><span className="font-medium">Date: </span>{exp.date}</div>}
                   {exp.description && exp.description.length > 0 && (
                     <div>
                       <span className="font-medium">Description: </span>
                       <ul className="list-disc list-inside ml-2">
-                        {exp.description.map((desc: string, i: number) => (
-                          <li key={i}>{desc}</li>
+                        {exp.description.map((desc, i) => (
+                          <li key={`${desc.substring(0, 20)}-${i}`}>{desc}</li>
                         ))}
                       </ul>
                     </div>
@@ -308,10 +343,25 @@ export default function ResumeProcessor() {
           <div>
             <h4 className="font-medium text-primary">Projects</h4>
             <div className="space-y-2 mt-1">
-              {json.projects.map((project: any, index: number) => (
-                <div key={index} className="text-sm border-l-2 border-primary/30 pl-2">
-                  <div><span className="font-medium">Name: </span>{project.name}</div>
-                  <div><span className="font-medium">Description: </span>{project.description}</div>
+              {json.projects.map((project, index) => (
+                <div key={`${project.name}-${index}`} className="text-sm border-l-2 border-primary/30 pl-2">
+                  {project.name && <div><span className="font-medium">Name: </span>{project.name}</div>}
+                  {project.description && project.description.length > 0 && (
+                    <div>
+                      <span className="font-medium">Description: </span>
+                      <ul className="list-disc list-inside ml-2">
+                        {project.description.map((desc, i) => (
+                          <li key={`${desc.substring(0, 20)}-${i}`}>{desc}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {project.technologies && (
+                    <div><span className="font-medium">Technologies: </span>{project.technologies}</div>
+                  )}
+                  {project.link && (
+                    <div><span className="font-medium">Link: </span>{project.link}</div>
+                  )}
                 </div>
               ))}
             </div>
@@ -330,8 +380,9 @@ export default function ResumeProcessor() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging
+        <button
+          type="button"
+          className={`w-full border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging
             ? "border-primary bg-primary/5"
             : file
               ? "border-green-500 bg-green-50"
@@ -341,6 +392,11 @@ export default function ResumeProcessor() {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={handleUploadClick}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              handleUploadClick();
+            }
+          }}
         >
           <input
             type="file"
@@ -370,7 +426,7 @@ export default function ResumeProcessor() {
               </>
             )}
           </div>
-        </div>
+        </button>
 
         {file && (
           <div className="flex items-center justify-center">
@@ -415,14 +471,14 @@ export default function ResumeProcessor() {
           </div>
         )}
 
-        {object && object.resume && (
+        {object?.resume && (
           <div className="border rounded-md p-4 bg-green-50">
             <div className="flex items-center mb-3">
               <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
               <h3 className="text-lg font-semibold text-green-700">Resume Analyzed</h3>
             </div>
             <div className="bg-white rounded-md p-4 overflow-auto max-h-96">
-              {formatJSON(object.resume)}
+              {formatJSON(object.resume as ResumeData)}
             </div>
           </div>
         )}
