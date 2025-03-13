@@ -1,10 +1,11 @@
 "use client";
 
 import ErrorBoundary from "@/components/error-boundary";
+import WelcomeModal from "@/components/welcome-modal";
 import { useResumeStore } from "@/store/resumeStore";
 import dynamic from "next/dynamic";
 import { usePostHog } from "posthog-js/react";
-import WelcomeModal from "@/components/welcome-modal";
+import { useEffect } from "react";
 
 const ResumeBuildingApp = dynamic(() => import("@/components/Resume"), {
   ssr: false,
@@ -19,7 +20,13 @@ export default function Home() {
   const posthog = usePostHog();
   const isResumeProcessed = useResumeStore((state) => state.isResumeProcessed);
 
-  posthog.capture("App Started", { property: "100" });
+  useEffect(() => {
+    try {
+      posthog?.capture("App Started", { property: "100" });
+    } catch (error) {
+      console.error("Failed to capture analytics:", error);
+    }
+  }, [posthog]);
 
   return (
     <ErrorBoundary>
