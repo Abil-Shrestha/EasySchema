@@ -73,9 +73,14 @@ export default function ResumeProcessor() {
 
   useEffect(() => {
     const setupPdfWorker = async () => {
-      "use client";
-      const pdfjsWorker = await import("pdfjs-dist/build/pdf.worker.mjs");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker.default;
+      try {
+        if (typeof window === 'undefined') return;
+
+        // Use the CDN version of the worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+      } catch (error) {
+        console.error("Error setting up PDF worker:", error);
+      }
     };
     setupPdfWorker();
   }, []);
