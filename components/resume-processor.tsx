@@ -73,8 +73,13 @@ export default function ResumeProcessor() {
 
   useEffect(() => {
     const setupPdfWorker = async () => {
-      const pdfjsWorker = await import("pdfjs-dist/build/pdf.worker.mjs");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.mjs';
+      try {
+        if (typeof window === 'undefined') return;
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "/node_modules/pdfjs-dist/build/pdf.worker.mjs"
+      } catch (error) {
+        console.error("Error setting up PDF worker:", error);
+      }
     };
     setupPdfWorker();
   }, []);
@@ -122,18 +127,46 @@ export default function ResumeProcessor() {
     api: "/api/process-resume",
     schema: ResumeSchema,
     onFinish({ object }) {
-      console.log("Processed resume:", object);
-      if (object && object.resume) {
+      console.log("Raw response object:", object);
+      if (!object) {
+        console.error("Response object is null or undefined");
+        toast.error("Error: Invalid response from server");
+        return;
+      }
+
+      if (!object.resume) {
+        console.error("Response object has no resume data:", object);
+        toast.error("Error: No resume data in response");
+        return;
+      }
+
+      try {
         updateResumeWithProcessedData(object.resume);
         toast.success("Resume processed successfully!");
-      } else {
-        console.error("Object or object.resume is null or undefined");
-        toast.error("Error processing resume. Please try again.");
+      } catch (error) {
+        console.error("Error updating resume data:", error);
+        toast.error("Error updating resume data");
       }
     },
     onError: (error) => {
       console.error("Error in processing resume:", error);
-      toast.error("Error processing resume: " + (error.message || "Please try again"));
+
+      // Handle specific error types
+      if (error instanceof Error) {
+        if (error.message.includes("rate limit")) {
+          toast.error("Too many requests. Please wait a moment and try again.");
+        } else if (error.message.includes("network")) {
+          toast.error("Network error. Please check your connection and try again.");
+        } else if (error.message.includes("timeout")) {
+          toast.error("Request timed out. Please try again.");
+        } else if (error.message.includes("validation")) {
+          toast.error("Invalid resume format. Please check your PDF and try again.");
+        } else {
+          toast.error(`Error: ${error.message}`);
+        }
+      } else {
+        toast.error("An unexpected error occurred. Please try again.");
+      }
     },
   });
 
@@ -174,12 +207,32 @@ export default function ResumeProcessor() {
     }
 
     try {
+      console.log("Starting PDF text extraction...");
       const text = await extractTextFromPdf(file);
+
+      if (!text || text.trim().length === 0) {
+        toast.error("Could not extract text from the PDF. Please try a different file.");
+        return;
+      }
+
+      console.log("PDF text extracted, length:", text.length);
       setPdfText(text);
+
+      console.log("Submitting text for processing...");
       await submit({ resumeText: text });
     } catch (err) {
       console.error("Error processing PDF:", err);
-      toast.error("Error processing PDF. Please try again with a different file.");
+      if (err instanceof Error) {
+        if (err.message.includes("corrupt")) {
+          toast.error("The PDF file appears to be corrupted. Please try a different file.");
+        } else if (err.message.includes("password")) {
+          toast.error("This PDF is password protected. Please remove the password and try again.");
+        } else {
+          toast.error(`Error processing PDF: ${err.message}`);
+        }
+      } else {
+        toast.error("Error processing PDF. Please try again with a different file.");
+      }
     }
   };
 
