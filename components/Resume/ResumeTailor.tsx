@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { tailoredResumeSchema } from "@/lib/schema";
 import { useResumeStore } from "@/store/resumeStore";
 import { useUpdatedResumeStore } from "@/store/updatedResumeStore";
-import { experimental_useObject } from "ai/react";
+import { experimental_useObject } from "@ai-sdk/react";
 import { Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";

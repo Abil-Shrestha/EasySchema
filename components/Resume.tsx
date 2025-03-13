@@ -20,7 +20,7 @@ import {
   useUpdatedResumeStore,
 } from "@/store/updatedResumeStore";
 import {PDFDownloadLink} from "@react-pdf/renderer";
-import {experimental_useObject} from "ai/react";
+import {experimental_useObject} from "@ai-sdk/react";
 import {Loader2, Plus} from "lucide-react";
 import {usePostHog} from "posthog-js/react";
 import type React from "react";

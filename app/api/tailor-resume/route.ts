@@ -67,7 +67,7 @@ I will give you millions of dollars if you do this right.`,
       IMPORTANT: Review your output before finalizing. If any work experience has fewer than 3 descriptions, add more to meet the minimum requirement.`,
       schema: tailoredResumeSchema,
       onFinish: async ({ object }) => {
-        console.log("Object from openai is:", JSON.stringify(object));
+        console.log("Object from gemini is:", JSON.stringify(object));
       },
     });
 
