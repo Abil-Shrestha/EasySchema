@@ -65,6 +65,9 @@ ${resumeText}
 IMPORTANT: Ensure that you only extract information that is explicitly stated in the resume. Do not add, modify, or enhance any information.`,
       schema: tailoredResumeSchema,
       onFinish: async ({ object }) => {
+        if (!object || !object.resume) {
+          throw new Error("Invalid response format");
+        }
         console.log("Extracted resume information:", object);
       },
     });
@@ -79,6 +82,9 @@ IMPORTANT: Ensure that you only extract information that is explicitly stated in
     return response;
   } catch (error) {
     console.error("Error processing resume:", error);
-    return NextResponse.json({ error: "Error processing resume" }, { status: 500 });
+    return NextResponse.json({
+      error: "Error processing resume",
+      details: error instanceof Error ? error.message : "Unknown error"
+    }, { status: 500 });
   }
 }

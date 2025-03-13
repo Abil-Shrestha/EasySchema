@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ResumeSchema } from "@/lib/schema";
 import {
@@ -10,11 +10,11 @@ import {
   useResumeStore,
 } from "@/store/resumeStore";
 import { experimental_useObject as useObject } from "@ai-sdk/react";
+import { AlertCircle, CheckCircle, FileText, Loader, Upload } from "lucide-react";
 import * as pdfjsLib from "pdfjs-dist";
 import { usePostHog } from "posthog-js/react";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Upload, FileText, CheckCircle, AlertCircle, Loader } from "lucide-react";
 
 export default function ResumeProcessor() {
   const [file, setFile] = useState<File | null>(null);
@@ -74,7 +74,7 @@ export default function ResumeProcessor() {
   useEffect(() => {
     const setupPdfWorker = async () => {
       const pdfjsWorker = await import("pdfjs-dist/build/pdf.worker.mjs");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = "pdfjs-dist/build/pdf.worker.mjs"
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.mjs';
     };
     setupPdfWorker();
   }, []);
