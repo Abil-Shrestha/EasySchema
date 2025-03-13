@@ -76,10 +76,11 @@ export default function ResumeProcessor() {
       try {
         if (typeof window === 'undefined') return;
 
-        // Use the CDN version of the worker
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+        // Use the worker from the public directory
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf-worker/pdf.worker.min.js';
       } catch (error) {
         console.error("Error setting up PDF worker:", error);
+        toast.error("Failed to initialize PDF processor. Please refresh the page.");
       }
     };
     setupPdfWorker();
