@@ -73,13 +73,9 @@ export default function ResumeProcessor() {
 
   useEffect(() => {
     const setupPdfWorker = async () => {
-      try {
-        if (typeof window === 'undefined') return;
-
-        pdfjsLib.GlobalWorkerOptions.workerSrc = "/node_modules/pdfjs-dist/build/pdf.worker.mjs"
-      } catch (error) {
-        console.error("Error setting up PDF worker:", error);
-      }
+      "use client";
+      const pdfjsWorker = await import("pdfjs-dist/build/pdf.worker.mjs");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker.default;
     };
     setupPdfWorker();
   }, []);
@@ -87,11 +83,11 @@ export default function ResumeProcessor() {
   const updateResumeWithProcessedData = (resumeData: any) => {
     // Update personal info
     if (resumeData.personalInfo) {
-      Object.entries(resumeData.personalInfo).forEach(([key, value]) => {
+      for (const [key, value] of Object.entries(resumeData.personalInfo)) {
         if (value) {
           updatePersonalInfo(key as keyof PersonalInfo, value as string);
         }
-      });
+      }
     }
 
     // Update work experiences
