@@ -28,26 +28,52 @@ export async function POST(req: NextRequest) {
 
     if (!success) {
       return NextResponse.json(
-        { error: "Too many requests" },
+        {
+          error: "Rate limit exceeded",
+          message: "Too many requests. Please wait a moment before trying again.",
+          retryAfter: Math.ceil((reset - Date.now()) / 1000),
+          limit,
+          remaining
+        },
         {
           status: 429,
           headers: {
             "X-RateLimit-Limit": limit.toString(),
             "X-RateLimit-Remaining": remaining.toString(),
             "X-RateLimit-Reset": reset.toString(),
+            "Retry-After": Math.ceil((reset - Date.now()) / 1000).toString()
           },
         }
       );
     }
 
-    const { resumeText } = await req.json();
+    const body = await req.json();
+    console.log("Received request body:", body);
 
-    if (!resumeText) {
+    if (!body.resumeText) {
+      console.error("No resume text provided in request");
       return NextResponse.json(
-        { error: "No resume text provided" },
+        {
+          error: "Missing resume text",
+          message: "No resume text was provided in the request. Please ensure you're sending a valid resume text.",
+          details: "The request body must include a 'resumeText' field with the content to process."
+        },
         { status: 400 }
       );
     }
+
+    if (body.resumeText.trim().length === 0) {
+      return NextResponse.json(
+        {
+          error: "Empty resume text",
+          message: "The provided resume text is empty. Please ensure the PDF contains text content.",
+          details: "The resume text must contain actual content to process."
+        },
+        { status: 400 }
+      );
+    }
+
+    console.log("Processing resume text of length:", body.resumeText.length);
 
     const result = await streamObject({
       model: google("gemini-2.0-flash-001"),
@@ -60,18 +86,23 @@ export async function POST(req: NextRequest) {
 5. For work experiences and projects, extract only the information that is explicitly stated in the resume.`,
       prompt: `Extract the relevant information from the following resume text and format it according to the provided schema. Remember to extract the information exactly as it appears without any modifications:
 
-${resumeText}
+${body.resumeText}
 
 IMPORTANT: Ensure that you only extract information that is explicitly stated in the resume. Do not add, modify, or enhance any information.`,
       schema: tailoredResumeSchema,
       onFinish: async ({ object }) => {
-        if (!object || !object.resume) {
-          throw new Error("Invalid response format");
+        console.log("AI processing complete, validating response...");
+        if (!object) {
+          throw new Error("AI response is empty");
         }
-        console.log("Extracted resume information:", object);
+        if (!object.resume) {
+          throw new Error("AI response missing resume data");
+        }
+        console.log("Resume data validation successful");
       },
     });
 
+    console.log("Preparing response stream...");
     const response = result.toTextStreamResponse();
 
     // Add rate limit headers to the response
@@ -82,9 +113,35 @@ IMPORTANT: Ensure that you only extract information that is explicitly stated in
     return response;
   } catch (error) {
     console.error("Error processing resume:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error details:", errorMessage);
+
+    // Categorize errors for better client handling
+    let statusCode = 500;
+    let errorType = "Internal Server Error";
+    let userMessage = "An unexpected error occurred while processing your resume.";
+
+    if (error instanceof Error) {
+      if (error.message.includes("AI response is empty")) {
+        statusCode = 422;
+        errorType = "AI Processing Error";
+        userMessage = "The AI model failed to process the resume content. Please try again.";
+      } else if (error.message.includes("AI response missing resume data")) {
+        statusCode = 422;
+        errorType = "Invalid AI Response";
+        userMessage = "The AI model returned an invalid response format. Please try again.";
+      } else if (error.message.includes("timeout")) {
+        statusCode = 504;
+        errorType = "Timeout Error";
+        userMessage = "The request timed out. Please try again.";
+      }
+    }
+
     return NextResponse.json({
-      error: "Error processing resume",
-      details: error instanceof Error ? error.message : "Unknown error"
-    }, { status: 500 });
+      error: errorType,
+      message: userMessage,
+      details: errorMessage,
+      timestamp: new Date().toISOString()
+    }, { status: statusCode });
   }
 }
