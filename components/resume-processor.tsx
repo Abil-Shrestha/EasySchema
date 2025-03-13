@@ -9,7 +9,7 @@ import {
   type PersonalInfo,
   useResumeStore,
 } from "@/store/resumeStore";
-import { experimental_useObject as useObject } from "ai/react";
+import { experimental_useObject as useObject } from "@ai-sdk/react";
 import * as pdfjsLib from "pdfjs-dist";
 import { usePostHog } from "posthog-js/react";
 import { useEffect, useState, useRef } from "react";
@@ -74,7 +74,7 @@ export default function ResumeProcessor() {
   useEffect(() => {
     const setupPdfWorker = async () => {
       const pdfjsWorker = await import("pdfjs-dist/build/pdf.worker.mjs");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker.default;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "pdfjs-dist/build/pdf.worker.mjs"
     };
     setupPdfWorker();
   }, []);

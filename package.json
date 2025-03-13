@@ -11,6 +11,7 @@
   "dependencies": {
     "@ai-sdk/google": "^1.1.14",
     "@ai-sdk/openai": "^0.0.63",
+    "@ai-sdk/react": "^1.1.22",
     "@fontsource/geist-sans": "^5.1.0",
     "@radix-ui/react-checkbox": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.6",

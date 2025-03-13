@@ -11,7 +11,7 @@ import { CSPostHogProvider } from "./providers";
 export const metadata: Metadata = {
 	title: "Resume Tailor",
 	description:
-		"Tailorobs with AI. Create a resume in seconds. Tailor your resume to a job description and download it as a PDF.",
+		"Tailor resume with AI. Create a resume in seconds. Tailor your resume to a job description and download it as a PDF.",
 };
 
 export default function RootLayout({
