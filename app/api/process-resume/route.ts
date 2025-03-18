@@ -2,7 +2,7 @@ import { ResumeSchema, tailoredResumeSchema } from "@/lib/schema";
 import { google } from '@ai-sdk/google';
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
-import { streamObject } from "ai";
+import { generateObject } from "ai";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 60;
@@ -106,9 +106,10 @@ export async function POST(req: NextRequest) {
     console.log("Processing resume text of length:", body.resumeText.length)
 
     try {
-      // IMPORTANT: This is the key change - we need to ensure the response is properly formatted
-      // for the experimental_useObject hook from @ai-sdk/react
-      const result = streamObject({
+      // Switch from streamObject to generateObject to avoid streaming issues in Vercel
+      console.log("Starting AI processing with generateObject instead of streaming")
+      
+      const result = await generateObject({
         model: google("gemini-2.0-flash-001"),
         system: `You are an AI assistant designed to extract structured information from resumes. Your task is to analyze the given resume text and extract relevant information according to the provided schema. Follow these strict guidelines:
 
@@ -123,10 +124,23 @@ ${body.resumeText}
 
 IMPORTANT: Ensure that you only extract information that is explicitly stated in the resume. Do not add, modify, or enhance any information.`,
         schema: ResumeSchema,
+        temperature: 0.1, // Lower temperature for more deterministic results
       })
 
-      console.log("Response stream prepared successfully")
-      return result.toTextStreamResponse()
+      console.log("AI processing completed successfully")
+      
+      // Return the complete object as JSON response instead of streaming
+      return NextResponse.json(
+        result.object,
+        {
+          status: 200,
+          headers: {
+            'X-RateLimit-Limit': limit.toString(),
+            'X-RateLimit-Remaining': remaining.toString(),
+            'X-RateLimit-Reset': reset.toString(),
+          }
+        }
+      )
     } catch (aiError) {
       console.error("Error with AI processing:", aiError)
       return NextResponse.json(
