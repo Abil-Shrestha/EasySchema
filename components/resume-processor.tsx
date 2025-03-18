@@ -157,6 +157,8 @@ export default function ResumeProcessor() {
           toast.error("Request timed out. Please try again.");
         } else if (error.message.includes("validation")) {
           toast.error("Invalid resume format. Please check your PDF and try again.");
+        } else if (error.message.includes("stream") || error.message.includes("chunk")) {
+          toast.error("Error streaming response. Please try again or contact support if the issue persists.");
         } else {
           toast.error(`Error: ${error.message}`);
         }
@@ -395,7 +397,14 @@ export default function ResumeProcessor() {
               <AlertCircle className="h-5 w-5 text-red-400" />
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-red-800">Error processing resume</h3>
-                <p className="text-sm text-red-700 mt-1">{error.message}</p>
+                <p className="text-sm text-red-700 mt-1">
+                  {error.message}
+                </p>
+                {error.message && (error.message.includes("stream") || error.message.includes("timeout")) && (
+                  <p className="text-xs text-red-600 mt-1">
+                    This may be due to a server timeout. Try uploading a smaller PDF or contact support if the issue persists.
+                  </p>
+                )}
               </div>
             </div>
           </div>

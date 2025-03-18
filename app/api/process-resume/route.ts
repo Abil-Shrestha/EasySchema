@@ -5,7 +5,7 @@ import { Redis } from "@upstash/redis";
 import { streamObject } from "ai";
 import { type NextRequest, NextResponse } from "next/server";
 
-export const maxDuration = 60;
+export const maxDuration = 300; // Increase timeout to 5 minutes for Vercel
 
 // Create a new ratelimiter, that allows 5 requests per 60 seconds
 const ratelimit = new Ratelimit({
@@ -102,15 +102,31 @@ IMPORTANT: Ensure that you only extract information that is explicitly stated in
       },
     });
 
-    console.log("Preparing response stream...");
-    const response = result.toTextStreamResponse();
-
-    // Add rate limit headers to the response
-    response.headers.set("X-RateLimit-Limit", limit.toString());
-    response.headers.set("X-RateLimit-Remaining", remaining.toString());
-    response.headers.set("X-RateLimit-Reset", reset.toString());
-
-    return response;
+    try {
+      console.log("Preparing response stream...");
+      const response = result.toTextStreamResponse();
+      
+      // Add rate limit headers to the response
+      response.headers.set("X-RateLimit-Limit", limit.toString());
+      response.headers.set("X-RateLimit-Remaining", remaining.toString());
+      response.headers.set("X-RateLimit-Reset", reset.toString());
+      
+      // Add headers to ensure proper streaming on Vercel
+      response.headers.set("Content-Type", "text/plain; charset=utf-8");
+      response.headers.set("Transfer-Encoding", "chunked");
+      response.headers.set("Cache-Control", "no-cache, no-transform");
+      response.headers.set("X-Content-Type-Options", "nosniff");
+      
+      console.log("Response stream prepared successfully");
+      return response;
+    } catch (streamError) {
+      console.error("Error creating response stream:", streamError);
+      return NextResponse.json({
+        error: "Streaming Error",
+        message: "Failed to create response stream",
+        details: streamError instanceof Error ? streamError.message : "Unknown streaming error"
+      }, { status: 500 });
+    }
   } catch (error) {
     console.error("Error processing resume:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
