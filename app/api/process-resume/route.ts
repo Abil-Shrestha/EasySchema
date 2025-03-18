@@ -1,4 +1,4 @@
-import { tailoredResumeSchema } from "@/lib/schema";
+import { ResumeSchema, tailoredResumeSchema } from "@/lib/schema";
 import { google } from '@ai-sdk/google';
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
@@ -21,19 +21,19 @@ const ratelimit = new Ratelimit({
 });
 
 export async function POST(req: NextRequest) {
-  console.log("[API] Route handler started", { timestamp: new Date().toISOString(), env: process.env.NODE_ENV });
+  console.log("API route started")
 
   try {
     // Rate limiting logic
     const ip = req.ip ?? "127.0.0.1"
-    console.log("[API] Checking rate limit for IP:", ip)
+    console.log("Checking rate limit for IP:", ip)
 
     let rateLimitResult
     try {
       rateLimitResult = await ratelimit.limit(ip)
-      console.log("[API] Rate limit check result:", rateLimitResult)
+      console.log("Rate limit check result:", rateLimitResult)
     } catch (rateLimitError) {
-      console.error("[API] Rate limit check failed:", rateLimitError)
+      console.error("Rate limit check failed:", rateLimitError)
       rateLimitResult = {
         success: true,
         limit: 10,
@@ -45,7 +45,6 @@ export async function POST(req: NextRequest) {
     const { success, limit, reset, remaining } = rateLimitResult
 
     if (!success) {
-      console.log("[API] Rate limit exceeded for IP:", ip);
       return NextResponse.json(
         {
           error: "Rate limit exceeded",
@@ -70,9 +69,9 @@ export async function POST(req: NextRequest) {
     let body
     try {
       body = await req.json()
-      console.log("[API] Request body parsed successfully", { bodySize: JSON.stringify(body).length })
+      console.log("Request body parsed successfully")
     } catch (parseError) {
-      console.error("[API] Failed to parse request body:", parseError)
+      console.error("Failed to parse request body:", parseError)
       return NextResponse.json(
         {
           error: "Invalid request",
@@ -84,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     // Validate resume text
     if (!body.resumeText) {
-      console.error("[API] No resume text provided in request")
+      console.error("No resume text provided in request")
       return NextResponse.json(
         {
           error: "Missing resume text",
@@ -95,7 +94,6 @@ export async function POST(req: NextRequest) {
     }
 
     if (body.resumeText.trim().length === 0) {
-      console.error("[API] Empty resume text provided");
       return NextResponse.json(
         {
           error: "Empty resume text",
@@ -105,11 +103,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    console.log("[API] Processing resume text of length:", body.resumeText.length)
+    console.log("Processing resume text of length:", body.resumeText.length)
 
     try {
-      console.log("[API] Starting AI processing with environment:", process.env.NODE_ENV);
-      
       // IMPORTANT: This is the key change - we need to ensure the response is properly formatted
       // for the experimental_useObject hook from @ai-sdk/react
       const result = streamObject({
@@ -126,47 +122,25 @@ export async function POST(req: NextRequest) {
 ${body.resumeText}
 
 IMPORTANT: Ensure that you only extract information that is explicitly stated in the resume. Do not add, modify, or enhance any information.`,
-        schema: tailoredResumeSchema,
+        schema: ResumeSchema,
       })
 
-      console.log("[API] AI processing initiated, preparing response stream...");
-
-      // The AI SDK's useObject hook expects a specific response format
-      // We need to ensure we're returning a proper stream
-      const response = result.toTextStreamResponse();
-
-      // Add headers for debugging and rate limiting
-      response.headers.set("X-RateLimit-Limit", limit.toString());
-      response.headers.set("X-RateLimit-Remaining", remaining.toString());
-      response.headers.set("X-RateLimit-Reset", reset.toString());
-      
-      // Add detailed headers for debugging
-      response.headers.set("X-Processing-Environment", process.env.NODE_ENV || "unknown");
-      response.headers.set("X-Processing-Timestamp", new Date().toISOString());
-      response.headers.set("Content-Type", "text/plain; charset=utf-8");
-      response.headers.set("Transfer-Encoding", "chunked");
-      response.headers.set("Cache-Control", "no-cache, no-transform");
-      response.headers.set("X-Content-Type-Options", "nosniff");
-
-      console.log("[API] Response stream prepared successfully with headers");
-      return response;
+      console.log("Response stream prepared successfully")
+      return result.toTextStreamResponse()
     } catch (aiError) {
-      console.error("[API] Error with AI processing:", aiError);
-      console.error("[API] Error stack:", aiError instanceof Error ? aiError.stack : "No stack trace available");
+      console.error("Error with AI processing:", aiError)
       return NextResponse.json(
         {
           error: "AI Processing Error",
           message: "Failed to process the resume with AI",
           details: aiError instanceof Error ? aiError.message : "Unknown AI error",
-          stack: process.env.NODE_ENV === "development" ? (aiError instanceof Error ? aiError.stack : "No stack trace") : undefined,
         },
         { status: 500 },
       )
     }
   } catch (error) {
-    console.error("[API] Unhandled error processing resume:", error);
-    console.error("[API] Error stack:", error instanceof Error ? error.stack : "No stack trace available");
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error processing resume:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
 
     return NextResponse.json(
       {
@@ -174,7 +148,6 @@ IMPORTANT: Ensure that you only extract information that is explicitly stated in
         message: "An unexpected error occurred while processing your resume.",
         details: errorMessage,
         timestamp: new Date().toISOString(),
-        stack: process.env.NODE_ENV === "development" ? (error instanceof Error ? error.stack : "No stack trace") : undefined,
       },
       { status: 500 },
     )
