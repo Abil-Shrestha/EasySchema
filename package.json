@@ -4,10 +4,9 @@
 	"private": true,
 	"scripts": {
 		"dev": "next dev",
-		"build": "bun run copy-pdf-worker && next build",
+		"build": "next build",
 		"start": "next start",
-		"lint": "next lint",
-		"copy-pdf-worker": "node scripts/copy-pdf-worker.js"
+		"lint": "next lint"
 	},
 	"dependencies": {
 		"@ai-sdk/google": "^1.1.14",
