@@ -5,12 +5,12 @@ import { Redis } from "@upstash/redis";
 import { streamObject } from "ai";
 import { type NextRequest, NextResponse } from "next/server";
 
-export const maxDuration = 300; // Increase timeout to 5 minutes for Vercel
+export const maxDuration = 60;
 
 // Create a new ratelimiter, that allows 5 requests per 60 seconds
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(5, "60 s"),
+  limiter: Ratelimit.slidingWindow(10, "60 s"),
   analytics: true,
   /**
    * Optional prefix for the keys used in redis. This is useful if you want to share a redis
@@ -105,18 +105,18 @@ IMPORTANT: Ensure that you only extract information that is explicitly stated in
     try {
       console.log("Preparing response stream...");
       const response = result.toTextStreamResponse();
-      
+
       // Add rate limit headers to the response
       response.headers.set("X-RateLimit-Limit", limit.toString());
       response.headers.set("X-RateLimit-Remaining", remaining.toString());
       response.headers.set("X-RateLimit-Reset", reset.toString());
-      
+
       // Add headers to ensure proper streaming on Vercel
       response.headers.set("Content-Type", "text/plain; charset=utf-8");
       response.headers.set("Transfer-Encoding", "chunked");
       response.headers.set("Cache-Control", "no-cache, no-transform");
       response.headers.set("X-Content-Type-Options", "nosniff");
-      
+
       console.log("Response stream prepared successfully");
       return response;
     } catch (streamError) {
