@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
 
     console.log("Processing resume text of length:", body.resumeText.length);
 
-    const result = await streamObject({
+    const result = streamObject({
       model: google("gemini-2.0-flash-001"),
       system: `You are an AI assistant designed to extract structured information from resumes. Your task is to analyze the given resume text and extract relevant information according to the provided schema. Follow these strict guidelines:
 

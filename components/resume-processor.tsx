@@ -80,7 +80,7 @@ export default function ResumeProcessor() {
     setupPdfWorker();
   }, []);
 
-  const updateResumeWithProcessedData = (resumeData: any) => {
+  const updateResumeWithProcessedData = (resumeData: ResumeSchema) => {
     // Update personal info
     if (resumeData.personalInfo) {
       for (const [key, value] of Object.entries(resumeData.personalInfo)) {
@@ -117,54 +117,23 @@ export default function ResumeProcessor() {
     setResumeProcessed(true);
   };
 
-  const { submit, isLoading, object, error } = useObject<{
-    resume: any;
+  const {submit, isLoading, object, error} = useObject<{
+    resume: ResumeSchema;
   }>({
     api: "/api/process-resume",
     schema: ResumeSchema,
-    onFinish({ object }) {
-      console.log("Raw response object:", object);
-      if (!object) {
-        console.error("Response object is null or undefined");
-        toast.error("Error: Invalid response from server");
-        return;
-      }
-
-      if (!object.resume) {
-        console.error("Response object has no resume data:", object);
-        toast.error("Error: No resume data in response");
-        return;
-      }
-
-      try {
+    onFinish({object}) {
+      console.log("Processed resume:", object);
+      if (object && object.resume) {
         updateResumeWithProcessedData(object.resume);
         toast.success("Resume processed successfully!");
-      } catch (error) {
-        console.error("Error updating resume data:", error);
-        toast.error("Error updating resume data");
+      } else {
+        console.error("Object or object.resume is null or undefined");
+        toast.error("Error processing resume. Please try again.");
       }
     },
     onError: (error) => {
       console.error("Error in processing resume:", error);
-
-      // Handle specific error types
-      if (error instanceof Error) {
-        if (error.message.includes("rate limit")) {
-          toast.error("Too many requests. Please wait a moment and try again.");
-        } else if (error.message.includes("network")) {
-          toast.error("Network error. Please check your connection and try again.");
-        } else if (error.message.includes("timeout")) {
-          toast.error("Request timed out. Please try again.");
-        } else if (error.message.includes("validation")) {
-          toast.error("Invalid resume format. Please check your PDF and try again.");
-        } else if (error.message.includes("stream") || error.message.includes("chunk")) {
-          toast.error("Error streaming response. Please try again or contact support if the issue persists.");
-        } else {
-          toast.error(`Error: ${error.message}`);
-        }
-      } else {
-        toast.error("An unexpected error occurred. Please try again.");
-      }
     },
   });
 

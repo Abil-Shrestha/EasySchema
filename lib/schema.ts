@@ -1,5 +1,5 @@
-import type { DeepPartial } from "ai";
-import { z } from "zod";
+import {DeepPartial} from "ai";
+import {z} from "zod";
 
 const tailoredResumeSchema = z.object({
   resume: z
@@ -101,7 +101,7 @@ const tailoredResumeSchema = z.object({
     ),
 });
 
-type ResumeSchema = z.infer<typeof tailoredResumeSchema>;
+export type ResumeSchema = z.infer<typeof tailoredResumeSchema>;
 
 const ResumeSchema = z.object({
   resume: z
@@ -227,7 +227,6 @@ const ResumeSchema = z.object({
       "Complete structure of a tailored resume, limited to one page, with content adjusted to highlight skills and experiences most relevant to the job description."
     ),
 });
-
 
 export {ResumeSchema, tailoredResumeSchema};
 
