@@ -21,19 +21,38 @@ const ratelimit = new Ratelimit({
 });
 
 export async function POST(req: NextRequest) {
+  console.log("[API] Route handler started", { timestamp: new Date().toISOString(), env: process.env.NODE_ENV });
+
   try {
     // Rate limiting logic
-    const ip = req.ip ?? "127.0.0.1";
-    const { success, limit, reset, remaining } = await ratelimit.limit(ip);
+    const ip = req.ip ?? "127.0.0.1"
+    console.log("[API] Checking rate limit for IP:", ip)
+
+    let rateLimitResult
+    try {
+      rateLimitResult = await ratelimit.limit(ip)
+      console.log("[API] Rate limit check result:", rateLimitResult)
+    } catch (rateLimitError) {
+      console.error("[API] Rate limit check failed:", rateLimitError)
+      rateLimitResult = {
+        success: true,
+        limit: 10,
+        remaining: 9,
+        reset: Date.now() + 60000,
+      }
+    }
+
+    const { success, limit, reset, remaining } = rateLimitResult
 
     if (!success) {
+      console.log("[API] Rate limit exceeded for IP:", ip);
       return NextResponse.json(
         {
           error: "Rate limit exceeded",
           message: "Too many requests. Please wait a moment before trying again.",
           retryAfter: Math.ceil((reset - Date.now()) / 1000),
           limit,
-          remaining
+          remaining,
         },
         {
           status: 429,
@@ -41,123 +60,124 @@ export async function POST(req: NextRequest) {
             "X-RateLimit-Limit": limit.toString(),
             "X-RateLimit-Remaining": remaining.toString(),
             "X-RateLimit-Reset": reset.toString(),
-            "Retry-After": Math.ceil((reset - Date.now()) / 1000).toString()
+            "Retry-After": Math.ceil((reset - Date.now()) / 1000).toString(),
           },
-        }
-      );
+        },
+      )
     }
 
-    const body = await req.json();
-    console.log("Received request body:", body);
+    // Parse request body
+    let body
+    try {
+      body = await req.json()
+      console.log("[API] Request body parsed successfully", { bodySize: JSON.stringify(body).length })
+    } catch (parseError) {
+      console.error("[API] Failed to parse request body:", parseError)
+      return NextResponse.json(
+        {
+          error: "Invalid request",
+          message: "Failed to parse request body. Please ensure you're sending valid JSON.",
+        },
+        { status: 400 },
+      )
+    }
 
+    // Validate resume text
     if (!body.resumeText) {
-      console.error("No resume text provided in request");
+      console.error("[API] No resume text provided in request")
       return NextResponse.json(
         {
           error: "Missing resume text",
-          message: "No resume text was provided in the request. Please ensure you're sending a valid resume text.",
-          details: "The request body must include a 'resumeText' field with the content to process."
+          message: "No resume text was provided in the request.",
         },
-        { status: 400 }
-      );
+        { status: 400 },
+      )
     }
 
     if (body.resumeText.trim().length === 0) {
+      console.error("[API] Empty resume text provided");
       return NextResponse.json(
         {
           error: "Empty resume text",
-          message: "The provided resume text is empty. Please ensure the PDF contains text content.",
-          details: "The resume text must contain actual content to process."
+          message: "The provided resume text is empty.",
         },
-        { status: 400 }
-      );
+        { status: 400 },
+      )
     }
 
-    console.log("Processing resume text of length:", body.resumeText.length);
+    console.log("[API] Processing resume text of length:", body.resumeText.length)
 
-    const result = streamObject({
-      model: google("gemini-2.0-flash-001"),
-      system: `You are an AI assistant designed to extract structured information from resumes. Your task is to analyze the given resume text and extract relevant information according to the provided schema. Follow these strict guidelines:
+    try {
+      console.log("[API] Starting AI processing with environment:", process.env.NODE_ENV);
+      
+      // IMPORTANT: This is the key change - we need to ensure the response is properly formatted
+      // for the experimental_useObject hook from @ai-sdk/react
+      const result = streamObject({
+        model: google("gemini-2.0-flash-001"),
+        system: `You are an AI assistant designed to extract structured information from resumes. Your task is to analyze the given resume text and extract relevant information according to the provided schema. Follow these strict guidelines:
 
 1. Extract information EXACTLY as it appears in the resume. Do not modify, enhance, or add any information.
 2. If a field in the schema is not present in the resume, leave it blank or null.
 3. Do not make assumptions or inferences about missing information.
 4. Maintain the original wording and formatting of the resume content as much as possible within the constraints of the schema.
 5. For work experiences and projects, extract only the information that is explicitly stated in the resume.`,
-      prompt: `Extract the relevant information from the following resume text and format it according to the provided schema. Remember to extract the information exactly as it appears without any modifications:
+        prompt: `Extract the relevant information from the following resume text and format it according to the provided schema. Remember to extract the information exactly as it appears without any modifications:
 
 ${body.resumeText}
 
 IMPORTANT: Ensure that you only extract information that is explicitly stated in the resume. Do not add, modify, or enhance any information.`,
-      schema: tailoredResumeSchema,
-      onFinish: async ({ object }) => {
-        console.log("AI processing complete, validating response...");
-        if (!object) {
-          throw new Error("AI response is empty");
-        }
-        if (!object.resume) {
-          throw new Error("AI response missing resume data");
-        }
-        console.log("Resume data validation successful");
-      },
-    });
+        schema: tailoredResumeSchema,
+      })
 
-    try {
-      console.log("Preparing response stream...");
+      console.log("[API] AI processing initiated, preparing response stream...");
+
+      // The AI SDK's useObject hook expects a specific response format
+      // We need to ensure we're returning a proper stream
       const response = result.toTextStreamResponse();
 
-      // Add rate limit headers to the response
+      // Add headers for debugging and rate limiting
       response.headers.set("X-RateLimit-Limit", limit.toString());
       response.headers.set("X-RateLimit-Remaining", remaining.toString());
       response.headers.set("X-RateLimit-Reset", reset.toString());
-
-      // Add headers to ensure proper streaming on Vercel
+      
+      // Add detailed headers for debugging
+      response.headers.set("X-Processing-Environment", process.env.NODE_ENV || "unknown");
+      response.headers.set("X-Processing-Timestamp", new Date().toISOString());
       response.headers.set("Content-Type", "text/plain; charset=utf-8");
       response.headers.set("Transfer-Encoding", "chunked");
       response.headers.set("Cache-Control", "no-cache, no-transform");
       response.headers.set("X-Content-Type-Options", "nosniff");
 
-      console.log("Response stream prepared successfully");
+      console.log("[API] Response stream prepared successfully with headers");
       return response;
-    } catch (streamError) {
-      console.error("Error creating response stream:", streamError);
-      return NextResponse.json({
-        error: "Streaming Error",
-        message: "Failed to create response stream",
-        details: streamError instanceof Error ? streamError.message : "Unknown streaming error"
-      }, { status: 500 });
+    } catch (aiError) {
+      console.error("[API] Error with AI processing:", aiError);
+      console.error("[API] Error stack:", aiError instanceof Error ? aiError.stack : "No stack trace available");
+      return NextResponse.json(
+        {
+          error: "AI Processing Error",
+          message: "Failed to process the resume with AI",
+          details: aiError instanceof Error ? aiError.message : "Unknown AI error",
+          stack: process.env.NODE_ENV === "development" ? (aiError instanceof Error ? aiError.stack : "No stack trace") : undefined,
+        },
+        { status: 500 },
+      )
     }
   } catch (error) {
-    console.error("Error processing resume:", error);
+    console.error("[API] Unhandled error processing resume:", error);
+    console.error("[API] Error stack:", error instanceof Error ? error.stack : "No stack trace available");
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("Error details:", errorMessage);
 
-    // Categorize errors for better client handling
-    let statusCode = 500;
-    let errorType = "Internal Server Error";
-    let userMessage = "An unexpected error occurred while processing your resume.";
-
-    if (error instanceof Error) {
-      if (error.message.includes("AI response is empty")) {
-        statusCode = 422;
-        errorType = "AI Processing Error";
-        userMessage = "The AI model failed to process the resume content. Please try again.";
-      } else if (error.message.includes("AI response missing resume data")) {
-        statusCode = 422;
-        errorType = "Invalid AI Response";
-        userMessage = "The AI model returned an invalid response format. Please try again.";
-      } else if (error.message.includes("timeout")) {
-        statusCode = 504;
-        errorType = "Timeout Error";
-        userMessage = "The request timed out. Please try again.";
-      }
-    }
-
-    return NextResponse.json({
-      error: errorType,
-      message: userMessage,
-      details: errorMessage,
-      timestamp: new Date().toISOString()
-    }, { status: statusCode });
+    return NextResponse.json(
+      {
+        error: "Internal Server Error",
+        message: "An unexpected error occurred while processing your resume.",
+        details: errorMessage,
+        timestamp: new Date().toISOString(),
+        stack: process.env.NODE_ENV === "development" ? (error instanceof Error ? error.stack : "No stack trace") : undefined,
+      },
+      { status: 500 },
+    )
   }
 }
+

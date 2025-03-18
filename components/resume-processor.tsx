@@ -15,6 +15,12 @@ import * as pdfjsLib from "pdfjs-dist";
 import { usePostHog } from "posthog-js/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import type { z } from "zod";
+
+// Define DeepPartial type for handling partial resume data
+type DeepPartial<T> = T extends object ? {
+  [P in keyof T]?: DeepPartial<T[P]>;
+} : T;
 
 export default function ResumeProcessor() {
   const [file, setFile] = useState<File | null>(null);
@@ -80,10 +86,13 @@ export default function ResumeProcessor() {
     setupPdfWorker();
   }, []);
 
-  const updateResumeWithProcessedData = (resumeData: ResumeSchema) => {
+  const updateResumeWithProcessedData = (resumeData: DeepPartial<z.infer<typeof ResumeSchema>>) => {
+    // Make sure we're working with the correct structure
+    const data = resumeData.resume || resumeData as any;
+    
     // Update personal info
-    if (resumeData.personalInfo) {
-      for (const [key, value] of Object.entries(resumeData.personalInfo)) {
+    if (data?.personalInfo) {
+      for (const [key, value] of Object.entries(data.personalInfo)) {
         if (value) {
           updatePersonalInfo(key as keyof PersonalInfo, value as string);
         }
@@ -91,13 +100,26 @@ export default function ResumeProcessor() {
     }
 
     // Update work experiences
-    if (resumeData.workExperiences) {
-      updateWorkExperiences(resumeData.workExperiences);
+    if (data?.workExperiences) {
+      const formattedWorkExperiences = data.workExperiences.map((exp: {
+        location?: string;
+        company?: string;
+        title?: string;
+        date?: string;
+        description?: string[];
+      }) => ({
+        location: exp.location || "",
+        company: exp.company || "",
+        title: exp.title || "",
+        date: exp.date || "",
+        description: exp.description || []
+      }));
+      updateWorkExperiences(formattedWorkExperiences);
     }
 
     // Update education
-    if (resumeData.education) {
-      Object.entries(resumeData.education).forEach(([key, value]) => {
+    if (data?.education) {
+      Object.entries(data.education).forEach(([key, value]) => {
         if (value) {
           updateEducation(key as keyof Education, value as string);
         }
@@ -105,95 +127,186 @@ export default function ResumeProcessor() {
     }
 
     // Update skills
-    if (resumeData.skills) {
-      updateSkills(resumeData.skills);
+    if (data?.skills) {
+      updateSkills(data.skills);
     }
 
     // Update projects
-    if (resumeData.projects) {
-      updateProjects(resumeData.projects);
+    if (data?.projects) {
+      const formattedProjects = data.projects.map((project: {
+        name?: string;
+        link?: string;
+        description?: string[];
+        technologies?: string;
+      }) => ({
+        name: project.name || "",
+        link: project.link || "",
+        description: project.description || [],
+        technologies: project.technologies || ""
+      }));
+      updateProjects(formattedProjects);
     }
     posthog.capture("resume_processed");
     setResumeProcessed(true);
   };
 
-  const {submit, isLoading, object, error} = useObject<{
-    resume: ResumeSchema;
-  }>({
+  // Add detailed logging for debugging streaming issues
+  const logDebug = (message: string, data?: unknown) => {
+    console.log(`[CLIENT] ${message}`, data);
+  };
+
+  const {submit, isLoading, object, error} = useObject({
     api: "/api/process-resume",
     schema: ResumeSchema,
+
     onFinish({object}) {
-      console.log("Processed resume:", object);
-      if (object && object.resume) {
-        updateResumeWithProcessedData(object.resume);
-        toast.success("Resume processed successfully!");
+      logDebug("Resume processing finished", { objectReceived: !!object, objectType: typeof object });
+      if (object) {
+        logDebug("Object structure", { 
+          hasResume: !!object.resume,
+          resumeType: object.resume ? typeof object.resume : 'undefined',
+          keys: Object.keys(object)
+        });
+        try {
+          logDebug("Updating resume with processed data");
+          updateResumeWithProcessedData(object);
+          toast.success("Resume processed successfully!");
+          logDebug("Resume updated successfully");
+        } catch (updateError) {
+          logDebug("Error updating resume", { error: updateError });
+          console.error("[CLIENT] Error updating resume:", updateError);
+          toast.error("Error updating resume data. Please try again.");
+        }
       } else {
-        console.error("Object or object.resume is null or undefined");
+        logDebug("Received null or undefined object");
+        console.error("[CLIENT] Object is null or undefined");
         toast.error("Error processing resume. Please try again.");
       }
     },
     onError: (error) => {
-      console.error("Error in processing resume:", error);
+      logDebug("Error in resume processing", { 
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        message: error instanceof Error ? error.message : String(error)
+      });
+      console.error("[CLIENT] Error processing resume:", error);
+      
+      // Provide more specific error messages based on error type
+      if (error instanceof Error) {
+        if (error.message.includes('fetch') || error.message.includes('network')) {
+          toast.error("Network error. Please check your connection and try again.");
+        } else if (error.message.includes('timeout')) {
+          toast.error("Request timed out. The server might be busy, please try again later.");
+        } else if (error.message.includes('parse') || error.message.includes('JSON')) {
+          toast.error("Error parsing response. There might be an issue with the server response format.");
+        } else if (error.message.includes('stream') || error.message.includes('chunk')) {
+          toast.error("Error with response streaming. This might be an issue with Vercel's serverless functions.");
+        } else {
+          toast.error(`Error: ${error.message}`);
+        }
+      } else {
+        toast.error("An unexpected error occurred. Please try again.");
+      }
     },
   });
 
   const extractTextFromPdf = (file: File): Promise<string> => {
+    logDebug("Starting PDF text extraction", { fileName: file.name, fileSize: file.size });
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = async (event) => {
+        logDebug("FileReader loaded file", { resultSize: event.target?.result ? (event.target.result as ArrayBuffer).byteLength : 0 });
         try {
           const typedarray = new Uint8Array(
             event.target?.result as ArrayBuffer
           );
+          logDebug("Converting PDF to document");
           const pdf = await pdfjsLib.getDocument(typedarray).promise;
+          logDebug("PDF loaded", { numPages: pdf.numPages });
           let fullText = "";
 
           for (let i = 1; i <= pdf.numPages; i++) {
+            logDebug(`Processing page ${i} of ${pdf.numPages}`);
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
             const pageText = textContent.items
-              .map((item: any) => item.str)
+              .map((item) => {
+                // Handle both TextItem and TextMarkedContent types
+                return 'str' in item ? item.str : '';
+              })
               .join(" ");
-            fullText += pageText + "\n\n";
+            fullText = `${fullText}${pageText}\n\n`;
           }
 
+          logDebug("PDF text extraction complete", { textLength: fullText.length });
           resolve(fullText);
         } catch (error) {
+          logDebug("Error in PDF extraction", { error });
           reject(error);
         }
       };
-      reader.onerror = (error) => reject(error);
+      reader.onerror = (error) => {
+        logDebug("FileReader error", { error });
+        reject(error);
+      };
       reader.readAsArrayBuffer(file);
     });
   };
 
   const processFile = async () => {
+    logDebug("Process file function called");
     if (!file) {
+      logDebug("No file selected");
       toast.error("Please select a PDF file to upload");
       return;
     }
 
     try {
-      console.log("Starting PDF text extraction...");
+      logDebug("Starting PDF processing", { fileName: file.name, fileSize: file.size });
       const text = await extractTextFromPdf(file);
 
       if (!text || text.trim().length === 0) {
+        logDebug("Empty text extracted from PDF");
         toast.error("Could not extract text from the PDF. Please try a different file.");
         return;
       }
 
-      console.log("PDF text extracted, length:", text.length);
+      logDebug("PDF text extracted successfully", { textLength: text.length });
       setPdfText(text);
 
-      console.log("Submitting text for processing...");
-      await submit({ resumeText: text });
+      // Add environment information to help debug Vercel issues
+      logDebug("Environment information", { 
+        isDevelopment: process.env.NODE_ENV === 'development',
+        isProduction: process.env.NODE_ENV === 'production',
+        userAgent: window.navigator.userAgent,
+        hostname: window.location.hostname
+      });
+
+      logDebug("Submitting text for AI processing");
+      const startTime = Date.now();
+      try {
+        await submit({ resumeText: text });
+        logDebug("Submit completed", { timeElapsed: Date.now() - startTime });
+      } catch (submitError) {
+        logDebug("Error in submit function", { 
+          error: submitError,
+          timeElapsed: Date.now() - startTime 
+        });
+        throw submitError; // Re-throw to be caught by outer catch
+      }
     } catch (err) {
-      console.error("Error processing PDF:", err);
+      logDebug("Error in processFile function", { error: err });
+      console.error("[CLIENT] Error processing PDF:", err);
       if (err instanceof Error) {
         if (err.message.includes("corrupt")) {
           toast.error("The PDF file appears to be corrupted. Please try a different file.");
         } else if (err.message.includes("password")) {
           toast.error("This PDF is password protected. Please remove the password and try again.");
+        } else if (err.message.includes("network") || err.message.includes("fetch")) {
+          toast.error("Network error while processing. Please check your connection and try again.");
+        } else if (err.message.includes("timeout")) {
+          toast.error("Request timed out. The server might be busy, please try again later.");
+        } else if (err.message.includes("stream") || err.message.includes("chunk")) {
+          toast.error("Error with response streaming. This might be an issue with Vercel's serverless functions.");
         } else {
           toast.error(`Error processing PDF: ${err.message}`);
         }
@@ -204,7 +317,24 @@ export default function ResumeProcessor() {
   };
 
   // Function to format JSON for display
-  const formatJSON = (json: any) => {
+  const formatJSON = (json: {
+    personalInfo?: Record<string, string>;
+    education?: Record<string, string>;
+    workExperiences?: Array<{
+      company?: string;
+      title?: string;
+      date?: string;
+      location?: string;
+      description?: string[];
+    }>;
+    skills?: string;
+    projects?: Array<{
+      name?: string;
+      link?: string;
+      description?: string[];
+      technologies?: string;
+    }>;
+  }) => {
     if (!json) return null;
 
     return (
@@ -248,8 +378,8 @@ export default function ResumeProcessor() {
           <div>
             <h4 className="font-medium text-primary">Work Experience</h4>
             <div className="space-y-2 mt-1">
-              {json.workExperiences.map((exp: any, index: number) => (
-                <div key={index} className="text-sm border-l-2 border-primary/30 pl-2">
+              {json.workExperiences.map((exp, index) => (
+                <div key={`work-${exp.company}-${index}`} className="text-sm border-l-2 border-primary/30 pl-2">
                   <div><span className="font-medium">Company: </span>{exp.company}</div>
                   <div><span className="font-medium">Title: </span>{exp.title}</div>
                   <div><span className="font-medium">Date: </span>{exp.date}</div>
@@ -257,8 +387,8 @@ export default function ResumeProcessor() {
                     <div>
                       <span className="font-medium">Description: </span>
                       <ul className="list-disc list-inside ml-2">
-                        {exp.description.map((desc: string, i: number) => (
-                          <li key={i}>{desc}</li>
+                        {exp.description.map((desc, i) => (
+                          <li key={`work-desc-${index}-${i}`}>{desc}</li>
                         ))}
                       </ul>
                     </div>
@@ -273,10 +403,17 @@ export default function ResumeProcessor() {
           <div>
             <h4 className="font-medium text-primary">Projects</h4>
             <div className="space-y-2 mt-1">
-              {json.projects.map((project: any, index: number) => (
-                <div key={index} className="text-sm border-l-2 border-primary/30 pl-2">
+              {json.projects.map((project, index) => (
+                <div key={`project-${project.name}-${index}`} className="text-sm border-l-2 border-primary/30 pl-2">
                   <div><span className="font-medium">Name: </span>{project.name}</div>
-                  <div><span className="font-medium">Description: </span>{project.description}</div>
+                  <div><span className="font-medium">Description: </span>
+                    {Array.isArray(project.description) 
+                      ? project.description.join(', ') 
+                      : String(project.description)}
+                  </div>
+                  {project.technologies && (
+                    <div><span className="font-medium">Technologies: </span>{project.technologies}</div>
+                  )}
                 </div>
               ))}
             </div>
@@ -306,6 +443,13 @@ export default function ResumeProcessor() {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={handleUploadClick}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              handleUploadClick();
+            }
+          }}
+          role="button"
+          tabIndex={0}
         >
           <input
             type="file"
