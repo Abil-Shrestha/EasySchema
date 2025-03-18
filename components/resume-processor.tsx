@@ -15,6 +15,7 @@ import * as pdfjsLib from "pdfjs-dist";
 import { usePostHog } from "posthog-js/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import type { z } from "zod";
 
 export default function ResumeProcessor() {
   const [file, setFile] = useState<File | null>(null);
@@ -73,35 +74,47 @@ export default function ResumeProcessor() {
 
   useEffect(() => {
     const setupPdfWorker = async () => {
-      try {
-        if (typeof window === 'undefined') return;
-
-        pdfjsLib.GlobalWorkerOptions.workerSrc = "/node_modules/pdfjs-dist/build/pdf.worker.mjs"
-      } catch (error) {
-        console.error("Error setting up PDF worker:", error);
-      }
+      "use client";
+      const pdfjsWorker = await import("pdfjs-dist/build/pdf.worker.mjs");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker.default;
     };
     setupPdfWorker();
   }, []);
 
-  const updateResumeWithProcessedData = (resumeData: any) => {
+  const updateResumeWithProcessedData = (resumeData: z.infer<typeof ResumeSchema>) => {
+    // Make sure we're working with the correct structure
+    const data = resumeData.resume || resumeData;
+
     // Update personal info
-    if (resumeData.personalInfo) {
-      Object.entries(resumeData.personalInfo).forEach(([key, value]) => {
+    if (data.personalInfo) {
+      for (const [key, value] of Object.entries(data.personalInfo)) {
         if (value) {
           updatePersonalInfo(key as keyof PersonalInfo, value as string);
         }
-      });
+      }
     }
 
     // Update work experiences
-    if (resumeData.workExperiences) {
-      updateWorkExperiences(resumeData.workExperiences);
+    if (data.workExperiences) {
+      const formattedWorkExperiences = data.workExperiences.map((exp: {
+        location?: string;
+        company?: string;
+        title?: string;
+        date?: string;
+        description?: string[];
+      }) => ({
+        location: exp.location || "",
+        company: exp.company || "",
+        title: exp.title || "",
+        date: exp.date || "",
+        description: exp.description || []
+      }));
+      updateWorkExperiences(formattedWorkExperiences);
     }
 
     // Update education
-    if (resumeData.education) {
-      Object.entries(resumeData.education).forEach(([key, value]) => {
+    if (data.education) {
+      Object.entries(data.education).forEach(([key, value]) => {
         if (value) {
           updateEducation(key as keyof Education, value as string);
         }
@@ -109,64 +122,44 @@ export default function ResumeProcessor() {
     }
 
     // Update skills
-    if (resumeData.skills) {
-      updateSkills(resumeData.skills);
+    if (data.skills) {
+      updateSkills(data.skills);
     }
 
     // Update projects
-    if (resumeData.projects) {
-      updateProjects(resumeData.projects);
+    if (data.projects) {
+      const formattedProjects = data.projects.map((project: {
+        name?: string;
+        link?: string;
+        description?: string[];
+        technologies?: string;
+      }) => ({
+        name: project.name || "",
+        link: project.link || "",
+        description: project.description || [],
+        technologies: project.technologies || ""
+      }));
+      updateProjects(formattedProjects);
     }
     posthog.capture("resume_processed");
     setResumeProcessed(true);
   };
 
-  const { submit, isLoading, object, error } = useObject<{
-    resume: any;
-  }>({
+  const { submit, isLoading, object, error } = useObject({
     api: "/api/process-resume",
     schema: ResumeSchema,
     onFinish({ object }) {
-      console.log("Raw response object:", object);
-      if (!object) {
-        console.error("Response object is null or undefined");
-        toast.error("Error: Invalid response from server");
-        return;
-      }
-
-      if (!object.resume) {
-        console.error("Response object has no resume data:", object);
-        toast.error("Error: No resume data in response");
-        return;
-      }
-
-      try {
-        updateResumeWithProcessedData(object.resume);
+      console.log("Processed resume:", object);
+      if (object) {
+        updateResumeWithProcessedData(object);
         toast.success("Resume processed successfully!");
-      } catch (error) {
-        console.error("Error updating resume data:", error);
-        toast.error("Error updating resume data");
+      } else {
+        console.error("Object is null or undefined");
+        toast.error("Error processing resume. Please try again.");
       }
     },
     onError: (error) => {
       console.error("Error in processing resume:", error);
-
-      // Handle specific error types
-      if (error instanceof Error) {
-        if (error.message.includes("rate limit")) {
-          toast.error("Too many requests. Please wait a moment and try again.");
-        } else if (error.message.includes("network")) {
-          toast.error("Network error. Please check your connection and try again.");
-        } else if (error.message.includes("timeout")) {
-          toast.error("Request timed out. Please try again.");
-        } else if (error.message.includes("validation")) {
-          toast.error("Invalid resume format. Please check your PDF and try again.");
-        } else {
-          toast.error(`Error: ${error.message}`);
-        }
-      } else {
-        toast.error("An unexpected error occurred. Please try again.");
-      }
     },
   });
 
@@ -399,7 +392,14 @@ export default function ResumeProcessor() {
               <AlertCircle className="h-5 w-5 text-red-400" />
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-red-800">Error processing resume</h3>
-                <p className="text-sm text-red-700 mt-1">{error.message}</p>
+                <p className="text-sm text-red-700 mt-1">
+                  {error.message}
+                </p>
+                {error.message && (error.message.includes("stream") || error.message.includes("timeout")) && (
+                  <p className="text-xs text-red-600 mt-1">
+                    This may be due to a server timeout. Try uploading a smaller PDF or contact support if the issue persists.
+                  </p>
+                )}
               </div>
             </div>
           </div>
