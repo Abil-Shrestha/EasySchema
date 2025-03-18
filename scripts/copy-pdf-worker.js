@@ -15,14 +15,10 @@ const workerFile = path.join(
 	"node_modules",
 	"pdfjs-dist",
 	"build",
-	"pdf.worker.mjs",
+	"pdf.worker.min.js",
 );
 const destFile = path.join(pdfWorkerDir, "pdf.worker.min.js");
 
-try {
-	fs.copyFileSync(workerFile, destFile);
-	console.log("PDF worker file copied successfully!");
-} catch (error) {
-	console.error("Error copying PDF worker file:", error);
-	process.exit(1);
-}
+fs.copyFileSync(workerFile, destFile);
+
+console.log("PDF worker file copied successfully!");

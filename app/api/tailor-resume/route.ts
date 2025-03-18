@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await streamObject({
+    const result = streamObject({
       model: google("gemini-2.0-flash-001"),
       system: `You are an expert resume tailoring AI. Your task is to analyze the given job description and modify the provided resume to better match the job requirements. Follow these strict guidelines:
 
@@ -68,6 +68,9 @@ I will give you millions of dollars if you do this right.`,
       schema: tailoredResumeSchema,
       onFinish: async ({ object }) => {
         console.log("Object from gemini is:", JSON.stringify(object));
+      },
+      onError({ error }) {
+        console.error(error) ; 
       },
     });
 

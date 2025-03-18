@@ -101,53 +101,137 @@ const tailoredResumeSchema = z.object({
     ),
 });
 
-export type ResumeSchema = z.infer<typeof tailoredResumeSchema>;
+type ResumeSchema = z.infer<typeof tailoredResumeSchema>;
 
-const PersonalInfoSchema = z.object({
-  name: z.string().optional(),
-  location: z.string().optional(),
-  email: z.string().optional(),
-  portfolio: z.string().optional(),
+const ResumeSchema = z.object({
+  resume: z
+    .object({
+      personalInfo: z
+        .object({
+          name: z.string().optional().describe("Full name of the candidate."),
+          location: z
+            .string()
+            .optional()
+            .describe("City and state of the candidate's location."),
+          email: z
+            .string()
+            .optional()
+            .describe("Email address of the candidate"),
+          portfolio: z
+            .string()
+            .optional()
+            .describe("URL of the candidate's portfolio website"),
+        })
+        .partial()
+        .describe("Personal information section of the resume."),
+
+      workExperiences: z
+        .array(
+          z
+            .object({
+              company: z
+                .string()
+                .optional()
+                .describe("Name of the employer or company."),
+              location: z
+                .string()
+                .optional()
+                .describe(
+                  "Location of the company or where the work was performed."
+                ),
+              title: z
+                .string()
+                .optional()
+                .describe("Job title or role of the candidate."),
+              date: z
+                .string()
+                .optional()
+                .describe(
+                  "Employment period in the format '[Start Month Year] - [End Month Year]' or '[Start Month Year] - Present'."
+                ),
+              description: z
+                .array(z.string())
+                .optional()
+                .describe("bullet points describing key achievements."),
+            })
+            .partial()
+        )
+        .optional()
+        .describe(
+          "Work experience section, including internships and relevant professional experiences tailored for the job."
+        ),
+
+      education: z
+        .object({
+          university: z
+            .string()
+            .optional()
+            .describe("Name of the university or educational institution."),
+          degree: z.string().optional().describe("Degree program and major."),
+          gpa: z.string().optional().describe("GPA"),
+          graduationDate: z
+            .string()
+            .optional()
+            .describe(
+              "Expected graduation date in the format 'Expected [Month Year]'."
+            ),
+        })
+        .partial()
+        .optional()
+        .describe("Education section of the resume."),
+
+      skills: z
+        .string()
+        .optional()
+        .describe(
+          "List of technical skills, programming languages, tools, and frameworks the candidate is proficient in. Separate different categories (e.g., 'Languages:', 'Frameworks:') for clarity."
+        ),
+
+      projects: z
+        .array(
+          z
+            .object({
+              id: z
+                .number()
+                .optional()
+                .describe("Unique identifier for the project entry."),
+              name: z.string().optional().describe("Name of the project."),
+              description: z
+                .array(z.string())
+                .optional()
+                .describe(
+                  "Bullet points describing the project details, including problem addressed, solution implemented, technologies used, role, and impact."
+                ),
+              technologies: z
+                .string()
+                .optional()
+                .describe(
+                  "Comprehensive list of technologies, languages, frameworks, and tools used in the project."
+                ),
+              link: z
+                .string()
+                .optional()
+                .describe(
+                  "URL to the project repository, deployed version, or demo, if applicable."
+                ),
+            })
+            .partial()
+        )
+        .optional()
+        .describe(
+          "Projects section, highlighting relevant technical projects in detail. Each project should demonstrate technical skills, problem-solving abilities, and impact."
+        ),
+    })
+    .partial()
+    .describe(
+      "Complete structure of a tailored resume, limited to one page, with content adjusted to highlight skills and experiences most relevant to the job description."
+    ),
 });
 
-const WorkExperienceSchema = z.object({
-  company: z.string(),
-  location: z.string(),
-  title: z.string(),
-  date: z.string(),
-  description: z.array(z.string()),
-}).partial();
 
-const EducationSchema = z.object({
-  university: z.string().optional(),
-  degree: z.string().optional(),
-  gpa: z.string().optional(),
-  graduationDate: z.string().optional(),
-});
+export {ResumeSchema, tailoredResumeSchema};
 
-const ProjectSchema = z.object({
-  name: z.string(),
-  description: z.array(z.string()),
-  technologies: z.string(),
-  link: z.string(),
-}).partial();
-
-// Export the schema for use in the API and components
-export const ResumeSchema = z.object({
-  resume: z.object({
-    personalInfo: PersonalInfoSchema.optional(),
-    workExperiences: z.array(WorkExperienceSchema).optional(),
-    education: EducationSchema.optional(),
-    skills: z.string().optional(),
-    projects: z.array(ProjectSchema).optional(),
-  }),
-});
-
-// Define types
-export type Resume = z.infer<typeof ResumeSchema>;
-export type PersonalInfo = z.infer<typeof PersonalInfoSchema>;
-export type WorkExperience = z.infer<typeof WorkExperienceSchema>;
-export type Education = z.infer<typeof EducationSchema>;
-export type Project = z.infer<typeof ProjectSchema>;
-export type ResumeData = Resume["resume"];
-export { tailoredResumeSchema };
+// Define a type for the partial resume during generation
+export type PartialResume = DeepPartial<
+  z.infer<typeof tailoredResumeSchema>["resume"]
+>;
